@@ -97,6 +97,7 @@ test("CLI onboard-existing supports JSON output", async () => {
     const parsed = JSON.parse(result.stdout);
 
     assert.equal(parsed.agent, "codex+claude");
+    assert.equal(parsed.complete, false);
     assert.ok(parsed.proposedCreates.includes("AGENTS.md"));
     assert.ok(parsed.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
   } finally {

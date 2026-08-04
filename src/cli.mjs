@@ -65,6 +65,9 @@ export async function runCli(argv) {
       await writeProposalFile(options["proposal-file"], result);
       console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
     }
+    if (options.check && !result.complete) {
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -97,7 +100,7 @@ function parseOptions(argv) {
     }
 
     const key = arg.slice(2);
-    if (key === "dry-run") {
+    if (key === "dry-run" || key === "check") {
       options[key] = true;
       continue;
     }
@@ -160,7 +163,7 @@ function printHelp() {
 
 Commands:
   init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--output text|json]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--proposal-file <path>] [--output text|json]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--proposal-file <path>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);
@@ -202,6 +205,8 @@ function printOnboardResult(result) {
 
   console.log("Blocked existing files:");
   printList(result.blockedExisting);
+
+  console.log(`Complete: ${result.complete ? "yes" : "no"}`);
 }
 
 function printList(items) {

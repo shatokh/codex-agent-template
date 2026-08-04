@@ -17,5 +17,6 @@ export async function onboardExisting({ target, agent, workflow }) {
     discovery,
     proposedCreates: plan.created,
     blockedExisting: plan.blocked,
+    complete: plan.created.length === 0,
   };
 }

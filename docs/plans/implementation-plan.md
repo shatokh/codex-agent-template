@@ -257,6 +257,7 @@ codex-agent-template list
 - `onboard-existing` bounded discovery proposal with no writes;
 - optional markdown proposal export through `--proposal-file`;
 - machine-readable CLI output through `--output json`;
+- `onboard-existing --check` for non-writing automation checks;
 - `.gitignore` generation for local AI overrides and environment files;
 - generated validation for local override ignore rules and unresolved root-rule template variables;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.

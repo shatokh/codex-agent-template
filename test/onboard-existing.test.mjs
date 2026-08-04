@@ -7,6 +7,7 @@ import test from "node:test";
 import { promisify } from "node:util";
 
 import { discoverExisting } from "../src/discover-existing.mjs";
+import { initNew } from "../src/init-new.mjs";
 import { onboardExisting } from "../src/onboard-existing.mjs";
 import { renderOnboardProposal } from "../src/render-onboard-proposal.mjs";
 
@@ -63,6 +64,7 @@ test("onboard-existing proposes files without writing", async () => {
     assert.ok(result.proposedCreates.includes(".gitignore"));
     assert.ok(result.proposedCreates.includes("CLAUDE.md"));
     assert.ok(result.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
+    assert.equal(result.complete, false);
 
     const files = await readdir(tempRoot);
     assert.deepEqual(files, ["AGENTS.md"]);
@@ -117,9 +119,67 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
   const markdown = renderOnboardProposal(result);
 
   assert.match(markdown, /# Onboard Existing Proposal/);
+  assert.match(markdown, /Complete: `no`/);
   assert.match(markdown, /`AGENTS\.md`/);
   assert.match(markdown, /unit-test: `npm run test` \(high\)/);
   assert.match(markdown, /No target files were written/);
+});
+
+test("CLI onboard-existing --check exits non-zero when proposal is incomplete", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-check-"));
+
+  try {
+    await assert.rejects(
+      execFileAsync(process.execPath, [
+        cliPath,
+        "onboard-existing",
+        "--target",
+        tempRoot,
+        "--agent",
+        "codex",
+        "--workflow",
+        "light",
+        "--check",
+      ]),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stdout, /Complete: no/);
+        return true;
+      }
+    );
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI onboard-existing --check exits zero when selected infrastructure is complete", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-check-complete-"));
+  const target = path.join(tempRoot, "generated-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      dryRun: false,
+    });
+
+    const result = await execFileAsync(process.execPath, [
+      cliPath,
+      "onboard-existing",
+      "--target",
+      target,
+      "--agent",
+      "codex",
+      "--workflow",
+      "light",
+      "--check",
+    ]);
+
+    assert.match(result.stdout, /Complete: yes/);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
 });
 
 test("CLI onboard-existing writes proposal file only when requested", async () => {

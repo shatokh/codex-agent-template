@@ -4,6 +4,7 @@ export function renderOnboardProposal(result) {
 Target: \`${result.target}\`
 Agent: \`${result.agent}\`
 Workflow: \`${result.workflow}\`
+Complete: \`${result.complete ? "yes" : "no"}\`
 
 No target files were written by this proposal.
 
