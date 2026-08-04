@@ -214,11 +214,25 @@ function printOnboardResult(result) {
   console.log("Detected project files:");
   printList(result.discovery.detectedProjectFiles);
 
+  console.log("Detected project types:");
+  printList(result.discovery.projectTypes);
+
+  console.log(`Package manager: ${result.discovery.packageManager || "none"}`);
+
   console.log("Detected commands:");
   if (result.discovery.commands.length === 0) {
     console.log("- none");
   } else {
     for (const command of result.discovery.commands) {
+      console.log(`- ${command.kind}: ${command.command} (${command.confidence})`);
+    }
+  }
+
+  console.log("Suggested verification:");
+  if (result.discovery.suggestedVerification.length === 0) {
+    console.log("- none");
+  } else {
+    for (const command of result.discovery.suggestedVerification) {
       console.log(`- ${command.kind}: ${command.command} (${command.confidence})`);
     }
   }

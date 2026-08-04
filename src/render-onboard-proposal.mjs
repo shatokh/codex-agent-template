@@ -18,9 +18,21 @@ ${renderList(result.discovery.existingAiFiles)}
 
 ${renderList(result.discovery.detectedProjectFiles)}
 
+## Detected Project Types
+
+${renderList(result.discovery.projectTypes)}
+
+## Package Manager
+
+${result.discovery.packageManager ? `- \`${result.discovery.packageManager}\`` : "- none"}
+
 ## Detected Commands
 
 ${renderCommands(result.discovery.commands)}
+
+## Suggested Verification
+
+${renderCommands(result.discovery.suggestedVerification)}
 
 ## Proposed Files To Create
 

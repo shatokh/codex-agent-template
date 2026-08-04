@@ -262,6 +262,7 @@ codex-agent-template list
 - generated validation for local override ignore rules and unresolved root-rule template variables;
 - optional packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`;
 - richer `onboard-existing` recommendations and severity-grouped findings;
+- discovery for project types, package manager, and suggested verification order;
 - workflow-specific rule content for `task-first` and `spec-tdd`;
 - manual-mode `context-artifact-advisor` generation through `--context-advisor`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.

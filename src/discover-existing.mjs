@@ -35,11 +35,13 @@ export function discoverExisting(target) {
   const detectedProjectFiles = projectFiles.filter((relativePath) =>
     existsSync(path.join(targetRoot, relativePath))
   );
+  const packageManager = detectPackageManager(targetRoot);
+  const projectTypes = detectProjectTypes(targetRoot);
   const commands = [];
 
   const packageJsonPath = path.join(targetRoot, "package.json");
   if (existsSync(packageJsonPath)) {
-    commands.push(...readPackageJsonCommands(packageJsonPath));
+    commands.push(...readPackageJsonCommands(packageJsonPath, packageManager || "npm"));
   }
 
   if (existsSync(path.join(targetRoot, "pyproject.toml"))) {
@@ -64,11 +66,53 @@ export function discoverExisting(target) {
     target: targetRoot,
     existingAiFiles,
     detectedProjectFiles,
+    projectTypes,
+    packageManager,
     commands,
+    suggestedVerification: buildSuggestedVerification(commands),
   };
 }
 
-function readPackageJsonCommands(packageJsonPath) {
+function detectPackageManager(targetRoot) {
+  if (existsSync(path.join(targetRoot, "pnpm-lock.yaml"))) {
+    return "pnpm";
+  }
+  if (existsSync(path.join(targetRoot, "yarn.lock"))) {
+    return "yarn";
+  }
+  if (existsSync(path.join(targetRoot, "package-lock.json"))) {
+    return "npm";
+  }
+  if (existsSync(path.join(targetRoot, "package.json"))) {
+    return "npm";
+  }
+  return null;
+}
+
+function detectProjectTypes(targetRoot) {
+  const types = [];
+  if (existsSync(path.join(targetRoot, "package.json"))) {
+    types.push("node");
+  }
+  if (existsSync(path.join(targetRoot, "pyproject.toml")) || existsSync(path.join(targetRoot, "requirements.txt"))) {
+    types.push("python");
+  }
+  if (existsSync(path.join(targetRoot, "go.mod"))) {
+    types.push("go");
+  }
+  if (existsSync(path.join(targetRoot, "Gemfile"))) {
+    types.push("ruby");
+  }
+  if (existsSync(path.join(targetRoot, "project.godot"))) {
+    types.push("godot");
+  }
+  if (existsSync(path.join(targetRoot, "Cargo.toml"))) {
+    types.push("rust");
+  }
+  return types;
+}
+
+function readPackageJsonCommands(packageJsonPath, packageManager) {
   const commands = [];
   let pkg;
   try {
@@ -90,9 +134,33 @@ function readPackageJsonCommands(packageJsonPath) {
 
   for (const [scriptName, kind] of scriptKinds) {
     if (scripts[scriptName]) {
-      commands.push({ kind, command: `npm run ${scriptName}`, confidence: "high" });
+      commands.push({ kind, command: packageCommand(packageManager, scriptName), confidence: "high" });
     }
   }
 
   return commands;
+}
+
+function packageCommand(packageManager, scriptName) {
+  if (packageManager === "yarn") {
+    return `yarn ${scriptName}`;
+  }
+  return `${packageManager} run ${scriptName}`;
+}
+
+function buildSuggestedVerification(commands) {
+  const orderedKinds = [
+    "project-validation",
+    "lint",
+    "static-analysis",
+    "unit-test",
+    "integration-test",
+    "e2e",
+    "build",
+    "manual-smoke",
+  ];
+
+  return orderedKinds
+    .map((kind) => commands.find((command) => command.kind === kind))
+    .filter(Boolean);
 }

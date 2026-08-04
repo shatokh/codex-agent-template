@@ -36,6 +36,7 @@ node bin/codex-agent-template.mjs list --output json
 `--proposal-file` writes the proposal markdown only when explicitly requested.
 Use `--output json` for machine-readable output from `list`, `init-new`, `onboard-existing`, and `validate`.
 Discovery currently checks common root config files, existing AI files, and package scripts.
+It reports detected project types, package manager, commands, and suggested verification order.
 
 Generated workflow artifacts:
 

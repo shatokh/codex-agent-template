@@ -30,18 +30,27 @@ test("discover-existing reads bounded root project evidence", async () => {
       }),
       "utf8"
     );
+    await writeFile(path.join(tempRoot, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n", "utf8");
     await writeFile(path.join(tempRoot, "AGENTS.md"), "# Existing instructions\n", "utf8");
     await mkdir(path.join(tempRoot, "docs", "specs"), { recursive: true });
 
     const discovery = discoverExisting(tempRoot);
 
     assert.deepEqual(discovery.existingAiFiles.sort(), ["AGENTS.md", "docs/specs"].sort());
-    assert.deepEqual(discovery.detectedProjectFiles, ["package.json"]);
+    assert.deepEqual(discovery.detectedProjectFiles, ["package.json", "pnpm-lock.yaml"]);
+    assert.deepEqual(discovery.projectTypes, ["node"]);
+    assert.equal(discovery.packageManager, "pnpm");
     assert.deepEqual(discovery.commands, [
-      { kind: "unit-test", command: "npm run test", confidence: "high" },
-      { kind: "lint", command: "npm run lint", confidence: "high" },
-      { kind: "build", command: "npm run build", confidence: "high" },
-      { kind: "project-validation", command: "npm run validate", confidence: "high" },
+      { kind: "unit-test", command: "pnpm run test", confidence: "high" },
+      { kind: "lint", command: "pnpm run lint", confidence: "high" },
+      { kind: "build", command: "pnpm run build", confidence: "high" },
+      { kind: "project-validation", command: "pnpm run validate", confidence: "high" },
+    ]);
+    assert.deepEqual(discovery.suggestedVerification, [
+      { kind: "project-validation", command: "pnpm run validate", confidence: "high" },
+      { kind: "lint", command: "pnpm run lint", confidence: "high" },
+      { kind: "unit-test", command: "pnpm run test", confidence: "high" },
+      { kind: "build", command: "pnpm run build", confidence: "high" },
     ]);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
@@ -111,7 +120,10 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
     discovery: {
       existingAiFiles: ["AGENTS.md"],
       detectedProjectFiles: ["package.json"],
+      projectTypes: ["node"],
+      packageManager: "npm",
       commands: [{ kind: "unit-test", command: "npm run test", confidence: "high" }],
+      suggestedVerification: [{ kind: "unit-test", command: "npm run test", confidence: "high" }],
     },
     proposedCreates: ["docs/tasks/TEMPLATE.md"],
     blockedExisting: ["AGENTS.md"],
@@ -133,6 +145,7 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
   assert.match(markdown, /Context advisor: `disabled`/);
   assert.match(markdown, /Complete: `no`/);
   assert.match(markdown, /`AGENTS\.md`/);
+  assert.match(markdown, /## Suggested Verification/);
   assert.match(markdown, /unit-test: `npm run test` \(high\)/);
   assert.match(markdown, /No target files were written/);
 });
