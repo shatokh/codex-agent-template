@@ -40,6 +40,11 @@ test("discover-existing reads bounded root project evidence", async () => {
     assert.deepEqual(discovery.detectedProjectFiles, ["package.json", "pnpm-lock.yaml"]);
     assert.deepEqual(discovery.projectTypes, ["node"]);
     assert.equal(discovery.packageManager, "pnpm");
+    assert.deepEqual(discovery.projectKindSuggestion, {
+      kind: "code",
+      confidence: "high",
+      evidence: ["project type: node"],
+    });
     assert.deepEqual(discovery.commands, [
       { kind: "unit-test", command: "pnpm run test", confidence: "high" },
       { kind: "lint", command: "pnpm run lint", confidence: "high" },
@@ -52,6 +57,28 @@ test("discover-existing reads bounded root project evidence", async () => {
       { kind: "unit-test", command: "pnpm run test", confidence: "high" },
       { kind: "build", command: "pnpm run build", confidence: "high" },
     ]);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("discover-existing suggests boardgame project kind from design docs", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-discover-boardgame-"));
+
+  try {
+    await mkdir(path.join(tempRoot, "docs"), { recursive: true });
+    await writeFile(path.join(tempRoot, "README.md"), "# Boardgame\n", "utf8");
+    await writeFile(path.join(tempRoot, "docs", "CARD_TYPES.md"), "# Cards\n", "utf8");
+    await writeFile(path.join(tempRoot, "docs", "CORE_GAMEPLAY_LOOP.md"), "# Loop\n", "utf8");
+
+    const discovery = discoverExisting(tempRoot);
+
+    assert.equal(discovery.projectKindSuggestion.kind, "boardgame");
+    assert.equal(discovery.projectKindSuggestion.confidence, "high");
+    assert.deepEqual(discovery.projectKindSuggestion.evidence.sort(), [
+      "docs/CARD_TYPES.md",
+      "docs/CORE_GAMEPLAY_LOOP.md",
+    ].sort());
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -140,6 +167,34 @@ test("onboard-existing flags mature advisor before proposing generic advisor", a
     );
     assert.ok(
       result.findings.some((finding) => finding.title === "Existing mature advisor detected")
+    );
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("onboard-existing warns when selected project kind conflicts with discovery", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-kind-warning-"));
+
+  try {
+    await mkdir(path.join(tempRoot, "docs"), { recursive: true });
+    await writeFile(path.join(tempRoot, "docs", "CARD_TYPES.md"), "# Cards\n", "utf8");
+
+    const result = await onboardExisting({
+      target: tempRoot,
+      agent: "codex",
+      workflow: "task-first",
+      projectKind: "code",
+    });
+
+    assert.equal(result.discovery.projectKindSuggestion.kind, "boardgame");
+    assert.ok(
+      result.recommendations.includes(
+        "Discovery suggests project kind boardgame; review --project-kind before generation."
+      )
+    );
+    assert.ok(
+      result.findings.some((finding) => finding.title === "Project kind may be misclassified")
     );
   } finally {
     await rm(tempRoot, { recursive: true, force: true });

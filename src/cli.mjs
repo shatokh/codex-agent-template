@@ -303,6 +303,13 @@ function printOnboardResult(result) {
   console.log("Detected project types:");
   printList(result.discovery.projectTypes);
 
+  console.log("Project kind suggestion:");
+  console.log(
+    `- ${result.discovery.projectKindSuggestion.kind} (${result.discovery.projectKindSuggestion.confidence})`
+  );
+  console.log("Project kind evidence:");
+  printList(result.discovery.projectKindSuggestion.evidence);
+
   console.log(`Package manager: ${result.discovery.packageManager || "none"}`);
 
   console.log(`Advisor status: ${result.discovery.advisorStatus || "none"}`);

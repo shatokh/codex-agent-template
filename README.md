@@ -43,6 +43,7 @@ Use `--project-kind code|docs|game-design|boardgame` to keep generated guidance 
 Use `--output json` for machine-readable output from `list`, `init-new`, `onboard-existing`, and `validate`.
 Discovery currently checks common root config files, existing AI files, and package scripts.
 It reports detected project types, package manager, commands, and suggested verification order.
+It suggests a project kind when non-code repository evidence is present.
 It also detects existing manual or mature session advisor artifacts so a generic context advisor is not proposed blindly.
 `onboard-existing` also includes a copy-ready verification draft in text, JSON, and markdown proposal output.
 

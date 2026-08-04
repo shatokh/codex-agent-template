@@ -126,6 +126,8 @@ node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioP
 
 Используй `--project-kind` явно, особенно для не-кодовых проектов.
 
+`onboard-existing` подсказывает project kind по найденным файлам, но финальный выбор остается за человеком.
+
 ```text
 code         обычный software project
 docs         документационный проект

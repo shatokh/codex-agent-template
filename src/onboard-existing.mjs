@@ -29,7 +29,11 @@ export async function onboardExisting({
     contextAdvisor,
     projectKind: normalizedProjectKind,
   });
-  const findings = buildFindings({ plan, discovery });
+  const findings = buildFindings({
+    plan,
+    discovery,
+    selectedProjectKind: normalizedProjectKind,
+  });
 
   return {
     target: discovery.target,
@@ -43,14 +47,23 @@ export async function onboardExisting({
     blockedExisting: plan.blocked,
     configurationIssues,
     complete: plan.created.length === 0 && configurationIssues.length === 0,
-    recommendations: buildRecommendations({ plan, discovery, configurationIssues }),
+    recommendations: buildRecommendations({
+      plan,
+      discovery,
+      configurationIssues,
+      selectedProjectKind: normalizedProjectKind,
+    }),
     findings: [...findings, ...configurationIssuesToFindings(configurationIssues)],
     verificationDraft: buildVerificationDraft(discovery, normalizedProjectKind),
   };
 }
 
-function buildRecommendations({ plan, discovery, configurationIssues }) {
-  if (plan.created.length === 0 && configurationIssues.length === 0) {
+function buildRecommendations({ plan, discovery, configurationIssues, selectedProjectKind }) {
+  const projectKindMismatch =
+    discovery.projectKindSuggestion.kind !== "code" &&
+    discovery.projectKindSuggestion.kind !== selectedProjectKind;
+
+  if (plan.created.length === 0 && configurationIssues.length === 0 && !projectKindMismatch) {
     return ["No generation needed for the selected agent/workflow/packs."];
   }
 
@@ -68,6 +81,12 @@ function buildRecommendations({ plan, discovery, configurationIssues }) {
 
   if (configurationIssues.length > 0) {
     recommendations.push("Manual metadata/content update needed for existing generated files.");
+  }
+
+  if (projectKindMismatch) {
+    recommendations.push(
+      `Discovery suggests project kind ${discovery.projectKindSuggestion.kind}; review --project-kind before generation.`
+    );
   }
 
   if (
@@ -139,7 +158,7 @@ function configurationIssuesToFindings(configurationIssues) {
   }));
 }
 
-function buildFindings({ plan, discovery }) {
+function buildFindings({ plan, discovery, selectedProjectKind }) {
   const findings = [];
 
   if (plan.created.length > 0) {
@@ -180,7 +199,24 @@ function buildFindings({ plan, discovery }) {
     });
   }
 
-  if (discovery.commands.length === 0) {
+  if (
+    discovery.projectKindSuggestion.kind !== "code" &&
+    discovery.projectKindSuggestion.kind !== selectedProjectKind
+  ) {
+    findings.push({
+      severity: "medium",
+      title: "Project kind may be misclassified",
+      detail: `Discovery suggests ${discovery.projectKindSuggestion.kind} (${discovery.projectKindSuggestion.confidence}) based on ${discovery.projectKindSuggestion.evidence.join(", ")}.`,
+    });
+  }
+
+  if (discovery.commands.length === 0 && selectedProjectKind !== "code") {
+    findings.push({
+      severity: "info",
+      title: "No software verification commands detected",
+      detail: "This is expected for non-code projects when manual review or playtest checks are the verification path.",
+    });
+  } else if (discovery.commands.length === 0) {
     findings.push({
       severity: "medium",
       title: "No verification commands detected",

@@ -48,6 +48,37 @@ const projectFiles = [
   ".env.example",
 ];
 
+const nonCodeProjectKindEvidence = [
+  {
+    kind: "boardgame",
+    confidence: "high",
+    files: [
+      "docs/CARD_TYPES.md",
+      "docs/CORE_GAMEPLAY_LOOP.md",
+      "docs/FIRST_EXPEDITION.md",
+      "docs/MVP_SCOPE.md",
+    ],
+  },
+  {
+    kind: "game-design",
+    confidence: "medium",
+    files: [
+      "docs/GAME_DESIGN.md",
+      "GAME_DESIGN.md",
+      "docs/GDD.md",
+      "GDD.md",
+      "docs/MECHANICS.md",
+    ],
+  },
+  {
+    kind: "docs",
+    confidence: "low",
+    files: [
+      "docs",
+    ],
+  },
+];
+
 export function discoverExisting(target) {
   const targetRoot = path.resolve(target);
   const existingAiFiles = aiFiles.filter((relativePath) => existsSync(path.join(targetRoot, relativePath)));
@@ -58,6 +89,7 @@ export function discoverExisting(target) {
   const projectTypes = detectProjectTypes(targetRoot);
   const advisorArtifacts = detectAdvisorArtifacts(targetRoot);
   const agentTemplate = readAgentTemplate(targetRoot);
+  const projectKindSuggestion = suggestProjectKind(targetRoot, projectTypes);
   const commands = [];
 
   const packageJsonPath = path.join(targetRoot, "package.json");
@@ -92,8 +124,38 @@ export function discoverExisting(target) {
     advisorStatus: detectAdvisorStatus(advisorArtifacts),
     advisorArtifacts: advisorArtifacts.map((artifact) => artifact.relativePath),
     agentTemplate,
+    projectKindSuggestion,
     commands,
     suggestedVerification: buildSuggestedVerification(commands),
+  };
+}
+
+function suggestProjectKind(targetRoot, projectTypes) {
+  if (projectTypes.length > 0) {
+    return {
+      kind: "code",
+      confidence: "high",
+      evidence: projectTypes.map((type) => `project type: ${type}`),
+    };
+  }
+
+  for (const definition of nonCodeProjectKindEvidence) {
+    const evidence = definition.files.filter((relativePath) =>
+      existsSync(path.join(targetRoot, relativePath))
+    );
+    if (evidence.length > 0) {
+      return {
+        kind: definition.kind,
+        confidence: definition.confidence,
+        evidence,
+      };
+    }
+  }
+
+  return {
+    kind: "code",
+    confidence: "low",
+    evidence: [],
   };
 }
 

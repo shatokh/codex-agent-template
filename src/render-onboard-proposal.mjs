@@ -23,6 +23,14 @@ ${renderList(result.discovery.detectedProjectFiles)}
 
 ${renderList(result.discovery.projectTypes)}
 
+## Project Kind Suggestion
+
+- \`${result.discovery.projectKindSuggestion?.kind || "code"}\` (${result.discovery.projectKindSuggestion?.confidence || "low"})
+
+## Project Kind Evidence
+
+${renderList(result.discovery.projectKindSuggestion?.evidence || [])}
+
 ## Package Manager
 
 ${result.discovery.packageManager ? `- \`${result.discovery.packageManager}\`` : "- none"}

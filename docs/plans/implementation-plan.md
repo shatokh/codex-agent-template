@@ -264,6 +264,7 @@ codex-agent-template list
 - optional packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`;
 - richer `onboard-existing` recommendations and severity-grouped findings;
 - discovery for project types, package manager, and suggested verification order;
+- discovery suggestions for non-code project kind selection;
 - discovery for manual context advisor and mature session advisor artifacts;
 - copy-ready verification draft in `onboard-existing` output;
 - local markdown proposal archive export through `--proposal-dir`;
