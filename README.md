@@ -37,6 +37,7 @@ node bin/codex-agent-template.mjs list --output json
 Use `--output json` for machine-readable output from `list`, `init-new`, `onboard-existing`, and `validate`.
 Discovery currently checks common root config files, existing AI files, and package scripts.
 It reports detected project types, package manager, commands, and suggested verification order.
+`onboard-existing` also includes a copy-ready verification draft in text, JSON, and markdown proposal output.
 
 Generated workflow artifacts:
 

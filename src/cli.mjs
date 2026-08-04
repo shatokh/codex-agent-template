@@ -237,6 +237,11 @@ function printOnboardResult(result) {
     }
   }
 
+  console.log("Verification draft:");
+  for (const row of result.verificationDraft) {
+    console.log(`- ${row.check}: ${row.command} (${row.confidence})`);
+  }
+
   console.log("Proposed files to create:");
   printList(result.proposedCreates);
 

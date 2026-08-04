@@ -106,6 +106,7 @@ test("CLI onboard-existing supports JSON output", async () => {
     assert.deepEqual(parsed.packs, ["privacy", "security"]);
     assert.equal(parsed.contextAdvisor, true);
     assert.equal(parsed.complete, false);
+    assert.ok(parsed.verificationDraft.some((row) => row.check === "Unit tests"));
     assert.ok(parsed.proposedCreates.includes("AGENTS.md"));
     assert.ok(parsed.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
     assert.ok(parsed.proposedCreates.includes("docs/ai/packs/privacy.md"));

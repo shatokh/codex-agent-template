@@ -34,6 +34,10 @@ ${renderCommands(result.discovery.commands)}
 
 ${renderCommands(result.discovery.suggestedVerification)}
 
+## Verification Draft
+
+${renderVerificationDraft(result.verificationDraft)}
+
 ## Proposed Files To Create
 
 ${renderList(result.proposedCreates)}
@@ -93,4 +97,16 @@ function renderFindings(findings) {
     })
     .filter(Boolean)
     .join("\n\n");
+}
+
+function renderVerificationDraft(rows) {
+  if (rows.length === 0) {
+    return "- none";
+  }
+
+  return [
+    "| Check | Command | Confidence |",
+    "| --- | --- | --- |",
+    ...rows.map((row) => `| ${row.check} | \`${row.command}\` | ${row.confidence} |`),
+  ].join("\n");
 }

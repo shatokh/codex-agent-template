@@ -25,6 +25,7 @@ export async function onboardExisting({ target, agent, workflow, packs = [], con
     complete: plan.created.length === 0,
     recommendations: buildRecommendations({ plan }),
     findings,
+    verificationDraft: buildVerificationDraft(discovery),
   };
 }
 
@@ -96,4 +97,32 @@ function buildFindings({ plan, discovery }) {
   }
 
   return findings;
+}
+
+function buildVerificationDraft(discovery) {
+  const rows = [];
+  const suggestedByKind = new Map(
+    discovery.suggestedVerification.map((command) => [command.kind, command])
+  );
+  const checks = [
+    ["Project validation", "project-validation"],
+    ["Lint", "lint"],
+    ["Static analysis / typecheck", "static-analysis"],
+    ["Unit tests", "unit-test"],
+    ["Integration tests", "integration-test"],
+    ["E2E / smoke", "e2e"],
+    ["Build/package", "build"],
+    ["Manual smoke", "manual-smoke"],
+  ];
+
+  for (const [label, kind] of checks) {
+    const command = suggestedByKind.get(kind);
+    rows.push({
+      check: label,
+      command: command?.command || "Not configured",
+      confidence: command?.confidence || "unknown",
+    });
+  }
+
+  return rows;
 }

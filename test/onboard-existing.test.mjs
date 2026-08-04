@@ -74,6 +74,7 @@ test("onboard-existing proposes files without writing", async () => {
     assert.ok(result.proposedCreates.includes("CLAUDE.md"));
     assert.ok(result.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
     assert.equal(result.complete, false);
+    assert.ok(result.verificationDraft.some((row) => row.check === "Unit tests"));
 
     const files = await readdir(tempRoot);
     assert.deepEqual(files, ["AGENTS.md"]);
@@ -102,6 +103,7 @@ test("CLI onboard-existing prints proposal and writes nothing", async () => {
     assert.match(result.stdout, /Onboard-existing proposal: no files written/);
     assert.match(result.stdout, /Detected project files/);
     assert.match(result.stdout, /README\.md/);
+    assert.match(result.stdout, /Verification draft/);
     assert.match(result.stdout, /docs\/specs\/TEMPLATE\.md/);
 
     const files = await readdir(tempRoot);
@@ -125,6 +127,9 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
       commands: [{ kind: "unit-test", command: "npm run test", confidence: "high" }],
       suggestedVerification: [{ kind: "unit-test", command: "npm run test", confidence: "high" }],
     },
+    verificationDraft: [
+      { check: "Unit tests", command: "npm run test", confidence: "high" },
+    ],
     proposedCreates: ["docs/tasks/TEMPLATE.md"],
     blockedExisting: ["AGENTS.md"],
     contextAdvisor: false,
@@ -146,6 +151,8 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
   assert.match(markdown, /Complete: `no`/);
   assert.match(markdown, /`AGENTS\.md`/);
   assert.match(markdown, /## Suggested Verification/);
+  assert.match(markdown, /## Verification Draft/);
+  assert.match(markdown, /\| Unit tests \| `npm run test` \| high \|/);
   assert.match(markdown, /unit-test: `npm run test` \(high\)/);
   assert.match(markdown, /No target files were written/);
 });
