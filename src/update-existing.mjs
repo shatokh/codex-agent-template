@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { buildGeneratedFilePlan } from "./init-new.mjs";
@@ -11,8 +12,15 @@ export async function updateExisting({
   packs = [],
   contextAdvisor = false,
   projectKind = "code",
+  apply = false,
+  approval = "",
 }) {
+  if (apply && approval.trim().length === 0) {
+    throw new Error("update-existing --apply requires --approval <text>.");
+  }
+
   const targetRoot = path.resolve(target);
+  const normalizedProjectKind = normalizeProjectKind(projectKind);
   const existingConfig = readExistingConfig(targetRoot);
   const expectedFiles = await buildGeneratedFilePlan({
     target: targetRoot,
@@ -20,15 +28,17 @@ export async function updateExisting({
     workflow,
     packs,
     contextAdvisor,
-    projectKind: normalizeProjectKind(projectKind),
+    projectKind: normalizedProjectKind,
     generatedAt: existingConfig.config?.generatedAt,
   });
 
   const missingCreates = [];
   const updateCandidates = [];
   const unchanged = [];
+  const filesByRelativePath = new Map();
 
   for (const file of expectedFiles) {
+    filesByRelativePath.set(file.relativePath, file);
     if (!existsSync(file.absolutePath)) {
       missingCreates.push(file.relativePath);
       continue;
@@ -42,19 +52,32 @@ export async function updateExisting({
     }
   }
 
+  const written = [];
+  if (apply) {
+    for (const relativePath of [...missingCreates, ...updateCandidates]) {
+      const file = filesByRelativePath.get(relativePath);
+      await mkdir(path.dirname(file.absolutePath), { recursive: true });
+      await writeFile(file.absolutePath, file.content, "utf8");
+      written.push(relativePath);
+    }
+  }
+
   return {
     target: targetRoot,
     agent,
     workflow,
-    projectKind,
+    projectKind: normalizedProjectKind,
     packs,
     contextAdvisor,
+    apply,
+    approval: apply ? approval : "",
     existingConfig,
     missingCreates,
     updateCandidates,
     unchanged,
-    complete: missingCreates.length === 0 && updateCandidates.length === 0,
-    recommendations: buildRecommendations({ missingCreates, updateCandidates }),
+    written,
+    complete: apply ? true : missingCreates.length === 0 && updateCandidates.length === 0,
+    recommendations: buildRecommendations({ missingCreates, updateCandidates, apply }),
   };
 }
 
@@ -85,9 +108,13 @@ function normalizeContent(content) {
   return content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trimEnd();
 }
 
-function buildRecommendations({ missingCreates, updateCandidates }) {
+function buildRecommendations({ missingCreates, updateCandidates, apply }) {
   if (missingCreates.length === 0 && updateCandidates.length === 0) {
     return ["Generated AI infrastructure is up to date for the selected options."];
+  }
+
+  if (apply) {
+    return ["Applied generated AI infrastructure updates after explicit approval."];
   }
 
   const recommendations = [];

@@ -120,7 +120,15 @@ node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioP
 - `Existing files to review for update`
 - `Unchanged generated files`
 
-`update-existing` в текущем виде ничего не пишет в target repo. Это review/diff gate перед ручным merge или будущим apply-режимом.
+`update-existing` без `--apply` ничего не пишет в target repo. Это review/diff gate перед ручным merge или approved apply.
+
+После review proposal и явного approval можно применить update:
+
+```powershell
+node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioProjects\existing-repo --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --apply --approval "approved after proposal review"
+```
+
+`--apply` нельзя совмещать с `--proposal-file` или `--proposal-dir`. Для apply обязательно нужен непустой `--approval`.
 
 ## Project Kind
 

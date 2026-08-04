@@ -52,13 +52,26 @@ export async function onboardExisting({
       discovery,
       configurationIssues,
       selectedProjectKind: normalizedProjectKind,
+      agent,
+      workflow,
+      packs,
+      contextAdvisor,
     }),
     findings: [...findings, ...configurationIssuesToFindings(configurationIssues)],
     verificationDraft: buildVerificationDraft(discovery, normalizedProjectKind),
   };
 }
 
-function buildRecommendations({ plan, discovery, configurationIssues, selectedProjectKind }) {
+function buildRecommendations({
+  plan,
+  discovery,
+  configurationIssues,
+  selectedProjectKind,
+  agent,
+  workflow,
+  packs,
+  contextAdvisor,
+}) {
   const projectKindMismatch =
     discovery.projectKindSuggestion.kind !== "code" &&
     discovery.projectKindSuggestion.kind !== selectedProjectKind;
@@ -87,6 +100,16 @@ function buildRecommendations({ plan, discovery, configurationIssues, selectedPr
     recommendations.push(
       `Discovery suggests project kind ${discovery.projectKindSuggestion.kind}; review --project-kind before generation.`
     );
+    recommendations.push(
+      `Recommended command: ${buildRecommendedOnboardCommand({
+        target: discovery.target,
+        agent,
+        workflow,
+        projectKind: discovery.projectKindSuggestion.kind,
+        packs,
+        contextAdvisor,
+      })}`
+    );
   }
 
   if (
@@ -97,6 +120,48 @@ function buildRecommendations({ plan, discovery, configurationIssues, selectedPr
   }
 
   return recommendations;
+}
+
+function buildRecommendedOnboardCommand({
+  target,
+  agent,
+  workflow,
+  projectKind,
+  packs,
+  contextAdvisor,
+}) {
+  const args = [
+    "node",
+    "bin\\codex-agent-template.mjs",
+    "onboard-existing",
+    "--target",
+    target,
+    "--agent",
+    agent,
+    "--workflow",
+    workflow,
+    "--project-kind",
+    projectKind,
+  ];
+
+  for (const pack of packs) {
+    args.push("--pack", pack);
+  }
+
+  if (contextAdvisor) {
+    args.push("--context-advisor");
+  }
+
+  args.push("--dry-run", "--proposal-dir", ".local\\proposals");
+
+  return args.map((arg) => quotePowerShellArg(arg)).join(" ");
+}
+
+function quotePowerShellArg(arg) {
+  if (/^[a-zA-Z0-9._:\\/-]+$/.test(arg)) {
+    return arg;
+  }
+  return `"${arg.replaceAll('"', '`"')}"`;
 }
 
 function buildConfigurationIssues({

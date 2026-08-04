@@ -185,3 +185,115 @@ test("CLI update-existing writes proposal under proposal dir", async () => {
     await rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+test("CLI update-existing --apply requires explicit approval", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-update-apply-no-approval-"));
+  const target = path.join(tempRoot, "generated-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "task-first",
+      dryRun: false,
+    });
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [
+        cliPath,
+        "update-existing",
+        "--target",
+        target,
+        "--agent",
+        "codex",
+        "--workflow",
+        "task-first",
+        "--project-kind",
+        "no-code",
+        "--apply",
+      ]),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /requires --approval/);
+        return true;
+      }
+    );
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI update-existing --apply rejects proposal export", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-update-apply-proposal-"));
+
+  try {
+    await assert.rejects(
+      execFileAsync(process.execPath, [
+        cliPath,
+        "update-existing",
+        "--target",
+        tempRoot,
+        "--agent",
+        "codex",
+        "--workflow",
+        "light",
+        "--apply",
+        "--approval",
+        "approved in test",
+        "--proposal-dir",
+        path.join(tempRoot, ".local", "proposals"),
+      ]),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /Do not use proposal export with --apply/);
+        return true;
+      }
+    );
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI update-existing --apply writes approved updates", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-update-apply-"));
+  const target = path.join(tempRoot, "generated-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "task-first",
+      projectKind: "code",
+      dryRun: false,
+    });
+
+    const result = await execFileAsync(process.execPath, [
+      cliPath,
+      "update-existing",
+      "--target",
+      target,
+      "--agent",
+      "codex",
+      "--workflow",
+      "task-first",
+      "--project-kind",
+      "no-code",
+      "--apply",
+      "--approval",
+      "approved in test",
+    ]);
+
+    assert.match(result.stdout, /Update-existing apply completed/);
+    assert.match(result.stdout, /Files written/);
+    assert.match(result.stdout, /Approval: approved in test/);
+
+    const config = JSON.parse(await readFile(path.join(target, ".agent-template.json"), "utf8"));
+    assert.equal(config.projectKind, "no-code");
+
+    const verification = await readFile(path.join(target, "docs", "ai", "verification.md"), "utf8");
+    assert.match(verification, /Project kind: `no-code`/);
+    assert.match(verification, /Scenario\/prototype walkthrough/);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});

@@ -29,6 +29,7 @@ node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-proj
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run --proposal-file C:\tmp\existing-project-proposal.md
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run --proposal-dir .local\proposals
 node bin/codex-agent-template.mjs update-existing --target C:\tmp\existing-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --proposal-dir .local\proposals
+node bin/codex-agent-template.mjs update-existing --target C:\tmp\existing-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --apply --approval "approved after proposal review"
 node bin/codex-agent-template.mjs validate --target C:\tmp\sample-project
 node bin/codex-agent-template.mjs list --output json
 ```
@@ -36,7 +37,7 @@ node bin/codex-agent-template.mjs list --output json
 `init-new` never overwrites existing generated files by default.
 `onboard-existing` currently prints a bounded discovery proposal and writes nothing.
 `onboard-existing --check` exits non-zero when the selected agent/workflow infrastructure is incomplete.
-`update-existing` compares existing generated files with current templates and writes no target files.
+`update-existing` compares existing generated files with current templates and writes no target files unless `--apply --approval <text>` is passed.
 `--proposal-file` writes the proposal markdown only when explicitly requested.
 `--proposal-dir` writes the proposal under `<dir>\<project-name>\...-onboarding-proposal.md`; `.local/` is gitignored and recommended for local review archives.
 Use `--project-kind code|docs|game-design|no-code` to keep generated guidance and verification aligned with non-code repositories.

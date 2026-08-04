@@ -194,6 +194,11 @@ test("onboard-existing warns when selected project kind conflicts with discovery
       )
     );
     assert.ok(
+      result.recommendations.some((recommendation) =>
+        recommendation.includes("--project-kind no-code")
+      )
+    );
+    assert.ok(
       result.findings.some((finding) => finding.title === "Project kind may be misclassified")
     );
   } finally {

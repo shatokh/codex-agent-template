@@ -97,6 +97,9 @@ export async function runCli(argv) {
     if (options["proposal-file"] && options["proposal-dir"]) {
       throw new Error("Use either --proposal-file or --proposal-dir, not both.");
     }
+    if (options.apply && (options["proposal-file"] || options["proposal-dir"])) {
+      throw new Error("Do not use proposal export with --apply; run dry-run proposal review first.");
+    }
 
     const result = await updateExisting({
       target: options.target || ".",
@@ -105,6 +108,8 @@ export async function runCli(argv) {
       projectKind: options["project-kind"] || "code",
       packs: options.pack || [],
       contextAdvisor: Boolean(options["context-advisor"]),
+      apply: Boolean(options.apply),
+      approval: options.approval || "",
     });
     if (options.output === "json") {
       printJson(result);
@@ -159,7 +164,7 @@ function parseOptions(argv) {
     }
 
     const key = arg.slice(2);
-    if (key === "dry-run" || key === "check" || key === "context-advisor") {
+    if (key === "dry-run" || key === "check" || key === "context-advisor" || key === "apply") {
       options[key] = true;
       continue;
     }
@@ -247,7 +252,7 @@ function printHelp() {
 Commands:
   init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
   onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
-  update-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
+  update-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--proposal-file <path>|--proposal-dir <path>] [--apply --approval <text>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);
@@ -371,7 +376,7 @@ function printOnboardResult(result) {
 }
 
 function printUpdateResult(result) {
-  console.log("Update-existing proposal: no files written.");
+  console.log(result.apply ? "Update-existing apply completed." : "Update-existing proposal: no files written.");
   console.log(`Target: ${result.target}`);
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
@@ -400,6 +405,12 @@ function printUpdateResult(result) {
 
   console.log("Unchanged generated files:");
   printList(result.unchanged);
+
+  if (result.apply) {
+    console.log("Files written:");
+    printList(result.written);
+    console.log(`Approval: ${result.approval}`);
+  }
 
   console.log("Recommendations:");
   printList(result.recommendations);

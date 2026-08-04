@@ -271,6 +271,7 @@ codex-agent-template list
 - explicit project kind support through `--project-kind code|docs|game-design|no-code`;
 - no-code/game-design/docs verification profiles that avoid fake software test commands;
 - `update-existing` dry-run comparison for existing generated AI files;
+- guarded `update-existing --apply --approval <text>` for approved generated file updates;
 - workflow-specific rule content for `task-first` and `spec-tdd`;
 - manual-mode `context-artifact-advisor` generation through `--context-advisor`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.
@@ -281,7 +282,7 @@ codex-agent-template list
 - `onboard-existing` file writing;
 - capture-mode context advisor;
 - `--force`;
-- apply mode for update/merge engine.
+- richer generated diff previews for update/merge engine.
 
 ## Локальные proposal-артефакты
 
