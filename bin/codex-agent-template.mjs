@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-console.error(
-  "codex-agent-template CLI is not implemented yet. See docs/plans/implementation-plan.md."
-);
-process.exitCode = 1;
+import { runCli } from "../src/cli.mjs";
 
+runCli(process.argv.slice(2)).catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

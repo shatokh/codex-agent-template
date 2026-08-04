@@ -17,6 +17,17 @@ The v1 target is deliberately narrow:
 - no blind overwrites;
 - adaptive verification guidance.
 
+## Current CLI
+
+```powershell
+node bin/codex-agent-template.mjs list
+node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light --dry-run
+node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light
+node bin/codex-agent-template.mjs validate --target C:\tmp\sample-project
+```
+
+`init-new` never overwrites existing generated files by default.
+
 See the implementation plan:
 
 - [Implementation Plan](docs/plans/implementation-plan.md)

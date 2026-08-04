@@ -1,0 +1,118 @@
+import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { promisify } from "node:util";
+
+import { initNew } from "../src/init-new.mjs";
+import { validateGeneratedProject } from "../src/validate-generated-project.mjs";
+
+const execFileAsync = promisify(execFile);
+const cliPath = path.resolve("bin", "codex-agent-template.mjs");
+
+test("init-new dry-run reports files without writing", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-dry-run-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    const result = await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      dryRun: true,
+    });
+
+    assert.equal(result.dryRun, true);
+    assert.deepEqual(result.created.sort(), [".agent-template.json", "AGENTS.md"].sort());
+    assert.equal(existsSync(target), false);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("init-new writes codex+claude files and generated validation passes", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-write-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    const result = await initNew({
+      target,
+      agent: "codex+claude",
+      workflow: "task-first",
+      dryRun: false,
+    });
+
+    assert.deepEqual(result.written.sort(), [
+      ".agent-template.json",
+      "AGENTS.md",
+      "CLAUDE.md",
+    ].sort());
+
+    const files = await readdir(target);
+    assert.deepEqual(files.sort(), [".agent-template.json", "AGENTS.md", "CLAUDE.md"].sort());
+
+    const claude = await readFile(path.join(target, "CLAUDE.md"), "utf8");
+    assert.match(claude, /@AGENTS\.md/);
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, true, validation.errors.join("\n"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("init-new blocks existing files by default", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-block-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      dryRun: false,
+    });
+
+    const second = await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      dryRun: false,
+    });
+
+    assert.deepEqual(second.blocked.sort(), [".agent-template.json", "AGENTS.md"].sort());
+    assert.deepEqual(second.written, []);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI init-new writes files and CLI validate accepts them", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-cli-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    const init = await execFileAsync(process.execPath, [
+      cliPath,
+      "init-new",
+      "--target",
+      target,
+      "--agent",
+      "claude",
+      "--workflow",
+      "spec-tdd",
+    ]);
+    assert.match(init.stdout, /Init-new completed/);
+
+    const validate = await execFileAsync(process.execPath, [cliPath, "validate", "--target", target]);
+    assert.match(validate.stdout, /Generated project validation passed/);
+
+    const files = await readdir(target);
+    assert.deepEqual(files.sort(), [".agent-template.json", "CLAUDE.md"].sort());
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});

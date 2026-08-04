@@ -243,6 +243,27 @@ codex-agent-template list
 - `--dry-run`
 - `--force` только для явно подтвержденных overwrite операций
 
+## Текущий статус реализации
+
+Реализовано:
+
+- base templates for `AGENTS.md`, `CLAUDE.md`, `CLAUDE.import-agents.md`;
+- `.agent-template.json` template;
+- `init-new --dry-run`;
+- `init-new` file writing;
+- default no-overwrite blocking;
+- generated project validation;
+- smoke tests for dry-run, write, no-overwrite, and generated validation.
+
+Не реализовано:
+
+- interactive prompts;
+- packs;
+- workflow-specific docs generation;
+- `onboard-existing`;
+- `--force`;
+- update/merge engine.
+
 ## Base artifacts v1
 
 Обязательные:
