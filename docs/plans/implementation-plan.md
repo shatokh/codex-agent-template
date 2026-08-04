@@ -255,6 +255,7 @@ codex-agent-template list
 - generated project validation;
 - workflow-specific docs generation for `light`, `task-first`, and `spec-tdd`;
 - `onboard-existing` bounded discovery proposal with no writes;
+- optional markdown proposal export through `--proposal-file`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.
 
 Не реализовано:

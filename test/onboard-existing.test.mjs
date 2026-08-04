@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 
 import { discoverExisting } from "../src/discover-existing.mjs";
 import { onboardExisting } from "../src/onboard-existing.mjs";
+import { renderOnboardProposal } from "../src/render-onboard-proposal.mjs";
 
 const execFileAsync = promisify(execFile);
 const cliPath = path.resolve("bin", "codex-agent-template.mjs");
@@ -93,6 +94,64 @@ test("CLI onboard-existing prints proposal and writes nothing", async () => {
 
     const files = await readdir(tempRoot);
     assert.deepEqual(files, ["README.md"]);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("render-onboard-proposal creates reviewable markdown", async () => {
+  const result = {
+    target: "C:/tmp/sample",
+    agent: "codex",
+    workflow: "task-first",
+    discovery: {
+      existingAiFiles: ["AGENTS.md"],
+      detectedProjectFiles: ["package.json"],
+      commands: [{ kind: "unit-test", command: "npm run test", confidence: "high" }],
+    },
+    proposedCreates: ["docs/tasks/TEMPLATE.md"],
+    blockedExisting: ["AGENTS.md"],
+  };
+
+  const markdown = renderOnboardProposal(result);
+
+  assert.match(markdown, /# Onboard Existing Proposal/);
+  assert.match(markdown, /`AGENTS\.md`/);
+  assert.match(markdown, /unit-test: `npm run test` \(high\)/);
+  assert.match(markdown, /No target files were written/);
+});
+
+test("CLI onboard-existing writes proposal file only when requested", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-proposal-"));
+  const target = path.join(tempRoot, "existing-project");
+  const proposalFile = path.join(tempRoot, "proposal.md");
+
+  try {
+    await mkdir(target);
+    await writeFile(path.join(target, "README.md"), "# Existing project\n", "utf8");
+
+    const result = await execFileAsync(process.execPath, [
+      cliPath,
+      "onboard-existing",
+      "--target",
+      target,
+      "--agent",
+      "codex",
+      "--workflow",
+      "light",
+      "--dry-run",
+      "--proposal-file",
+      proposalFile,
+    ]);
+
+    assert.match(result.stdout, /Proposal written:/);
+
+    const proposal = await readFile(proposalFile, "utf8");
+    assert.match(proposal, /# Onboard Existing Proposal/);
+    assert.match(proposal, /README\.md/);
+
+    const targetFiles = await readdir(target);
+    assert.deepEqual(targetFiles, ["README.md"]);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

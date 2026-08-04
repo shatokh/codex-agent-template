@@ -11,6 +11,7 @@ const requiredFiles = [
   "src/discover-existing.mjs",
   "src/init-new.mjs",
   "src/onboard-existing.mjs",
+  "src/render-onboard-proposal.mjs",
   "src/validate-generated-project.mjs",
   "templates/base/AGENTS.md.tmpl",
   "templates/base/CLAUDE.md.tmpl",

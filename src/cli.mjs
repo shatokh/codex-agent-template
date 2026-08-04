@@ -1,5 +1,9 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+
 import { initNew } from "./init-new.mjs";
 import { onboardExisting } from "./onboard-existing.mjs";
+import { renderOnboardProposal } from "./render-onboard-proposal.mjs";
 import { validateGeneratedProject } from "./validate-generated-project.mjs";
 
 const agentModes = ["codex", "claude", "codex+claude"];
@@ -41,6 +45,10 @@ export async function runCli(argv) {
       workflow: options.workflow || "light",
     });
     printOnboardResult(result);
+    if (options["proposal-file"]) {
+      await writeProposalFile(options["proposal-file"], result);
+      console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
+    }
     return;
   }
 
@@ -131,10 +139,16 @@ function printHelp() {
 
 Commands:
   init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--proposal-file <path>]
   validate --target <path>
   list
 `);
+}
+
+async function writeProposalFile(proposalFile, result) {
+  const outputPath = path.resolve(proposalFile);
+  await mkdir(path.dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, renderOnboardProposal(result), "utf8");
 }
 
 function printOnboardResult(result) {
