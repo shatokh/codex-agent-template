@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+
+# Local agent overrides and sandbox notes
+AGENTS.local.md
+CLAUDE.local.md
+.agent-local/
+.codex-local/
+.claude-local/
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
