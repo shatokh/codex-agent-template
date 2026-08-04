@@ -1,4 +1,5 @@
 import { initNew } from "./init-new.mjs";
+import { onboardExisting } from "./onboard-existing.mjs";
 import { validateGeneratedProject } from "./validate-generated-project.mjs";
 
 const agentModes = ["codex", "claude", "codex+claude"];
@@ -30,6 +31,16 @@ export async function runCli(argv) {
     if (result.blocked.length > 0 || result.errors.length > 0) {
       process.exitCode = 1;
     }
+    return;
+  }
+
+  if (command === "onboard-existing") {
+    const result = await onboardExisting({
+      target: options.target || ".",
+      agent: options.agent || "codex",
+      workflow: options.workflow || "light",
+    });
+    printOnboardResult(result);
     return;
   }
 
@@ -120,7 +131,47 @@ function printHelp() {
 
 Commands:
   init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run]
   validate --target <path>
   list
 `);
+}
+
+function printOnboardResult(result) {
+  console.log("Onboard-existing proposal: no files written.");
+  console.log(`Target: ${result.target}`);
+  console.log(`Agent: ${result.agent}`);
+  console.log(`Workflow: ${result.workflow}`);
+
+  console.log("Existing AI files:");
+  printList(result.discovery.existingAiFiles);
+
+  console.log("Detected project files:");
+  printList(result.discovery.detectedProjectFiles);
+
+  console.log("Detected commands:");
+  if (result.discovery.commands.length === 0) {
+    console.log("- none");
+  } else {
+    for (const command of result.discovery.commands) {
+      console.log(`- ${command.kind}: ${command.command} (${command.confidence})`);
+    }
+  }
+
+  console.log("Proposed files to create:");
+  printList(result.proposedCreates);
+
+  console.log("Blocked existing files:");
+  printList(result.blockedExisting);
+}
+
+function printList(items) {
+  if (items.length === 0) {
+    console.log("- none");
+    return;
+  }
+
+  for (const item of items) {
+    console.log(`- ${item}`);
+  }
 }

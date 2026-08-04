@@ -23,10 +23,13 @@ The v1 target is deliberately narrow:
 node bin/codex-agent-template.mjs list
 node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light --dry-run
 node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light
+node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run
 node bin/codex-agent-template.mjs validate --target C:\tmp\sample-project
 ```
 
 `init-new` never overwrites existing generated files by default.
+`onboard-existing` currently prints a bounded discovery proposal and writes nothing.
+Discovery currently checks common root config files, existing AI files, and package scripts.
 
 Generated workflow artifacts:
 
