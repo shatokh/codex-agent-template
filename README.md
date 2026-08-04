@@ -26,11 +26,13 @@ node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agen
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run --proposal-file C:\tmp\existing-project-proposal.md
 node bin/codex-agent-template.mjs validate --target C:\tmp\sample-project
+node bin/codex-agent-template.mjs list --output json
 ```
 
 `init-new` never overwrites existing generated files by default.
 `onboard-existing` currently prints a bounded discovery proposal and writes nothing.
 `--proposal-file` writes the proposal markdown only when explicitly requested.
+Use `--output json` for machine-readable output from `list`, `init-new`, `onboard-existing`, and `validate`.
 Discovery currently checks common root config files, existing AI files, and package scripts.
 
 Generated workflow artifacts:

@@ -19,8 +19,16 @@ export async function runCli(argv) {
   }
 
   if (command === "list") {
-    console.log("Agents: codex, claude, codex+claude");
-    console.log("Workflows: light, task-first, spec-tdd");
+    const result = {
+      agents: agentModes,
+      workflows,
+    };
+    if (options.output === "json") {
+      printJson(result);
+    } else {
+      console.log("Agents: codex, claude, codex+claude");
+      console.log("Workflows: light, task-first, spec-tdd");
+    }
     return;
   }
 
@@ -31,7 +39,11 @@ export async function runCli(argv) {
       workflow: options.workflow || "light",
       dryRun: Boolean(options["dry-run"]),
     });
-    printInitResult(result);
+    if (options.output === "json") {
+      printJson(result);
+    } else {
+      printInitResult(result);
+    }
     if (result.blocked.length > 0 || result.errors.length > 0) {
       process.exitCode = 1;
     }
@@ -44,7 +56,11 @@ export async function runCli(argv) {
       agent: options.agent || "codex",
       workflow: options.workflow || "light",
     });
-    printOnboardResult(result);
+    if (options.output === "json") {
+      printJson(result);
+    } else {
+      printOnboardResult(result);
+    }
     if (options["proposal-file"]) {
       await writeProposalFile(options["proposal-file"], result);
       console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
@@ -54,7 +70,9 @@ export async function runCli(argv) {
 
   if (command === "validate") {
     const result = await validateGeneratedProject(options.target || ".");
-    if (result.valid) {
+    if (options.output === "json") {
+      printJson(result);
+    } else if (result.valid) {
       console.log("Generated project validation passed.");
     } else {
       console.error("Generated project validation failed:");
@@ -98,6 +116,9 @@ function parseOptions(argv) {
   if (options.workflow && !workflows.includes(options.workflow)) {
     throw new Error(`Unsupported --workflow value: ${options.workflow}`);
   }
+  if (options.output && !["text", "json"].includes(options.output)) {
+    throw new Error(`Unsupported --output value: ${options.output}`);
+  }
 
   return options;
 }
@@ -138,11 +159,15 @@ function printHelp() {
   console.log(`codex-agent-template
 
 Commands:
-  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--proposal-file <path>]
-  validate --target <path>
-  list
+  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--output text|json]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--proposal-file <path>] [--output text|json]
+  validate --target <path> [--output text|json]
+  list [--output text|json]
 `);
+}
+
+function printJson(value) {
+  console.log(JSON.stringify(value, null, 2));
 }
 
 async function writeProposalFile(proposalFile, result) {

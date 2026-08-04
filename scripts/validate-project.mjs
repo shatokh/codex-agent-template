@@ -23,6 +23,7 @@ const requiredFiles = [
   "templates/base/docs/tasks/TEMPLATE.md.tmpl",
   "templates/base/docs/specs/TEMPLATE.md.tmpl",
   "templates/base/docs/ai-change-records/TEMPLATE.md.tmpl",
+  "test/cli-output.test.mjs",
   "test/init-new.test.mjs",
   "test/onboard-existing.test.mjs",
   "docs/plans/implementation-plan.md",
