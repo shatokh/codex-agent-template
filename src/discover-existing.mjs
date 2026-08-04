@@ -13,6 +13,25 @@ const aiFiles = [
   "docs/ai-change-records",
 ];
 
+const advisorArtifactDefinitions = [
+  {
+    relativePath: ".agents/skills/session-artifact-advisor/SKILL.md",
+    advisor: "session-artifact-advisor",
+  },
+  {
+    relativePath: "docs/ai/session-advisor",
+    advisor: "session-artifact-advisor",
+  },
+  {
+    relativePath: ".agents/skills/context-artifact-advisor/SKILL.md",
+    advisor: "manual-context-advisor",
+  },
+  {
+    relativePath: "docs/ai/advisor",
+    advisor: "manual-context-advisor",
+  },
+];
+
 const projectFiles = [
   "README.md",
   "package.json",
@@ -37,6 +56,7 @@ export function discoverExisting(target) {
   );
   const packageManager = detectPackageManager(targetRoot);
   const projectTypes = detectProjectTypes(targetRoot);
+  const advisorArtifacts = detectAdvisorArtifacts(targetRoot);
   const commands = [];
 
   const packageJsonPath = path.join(targetRoot, "package.json");
@@ -68,9 +88,35 @@ export function discoverExisting(target) {
     detectedProjectFiles,
     projectTypes,
     packageManager,
+    advisorStatus: detectAdvisorStatus(advisorArtifacts),
+    advisorArtifacts: advisorArtifacts.map((artifact) => artifact.relativePath),
     commands,
     suggestedVerification: buildSuggestedVerification(commands),
   };
+}
+
+function detectAdvisorArtifacts(targetRoot) {
+  return advisorArtifactDefinitions.filter((artifact) =>
+    existsSync(path.join(targetRoot, artifact.relativePath))
+  );
+}
+
+function detectAdvisorStatus(advisorArtifacts) {
+  const advisors = new Set(advisorArtifacts.map((artifact) => artifact.advisor));
+
+  if (
+    advisors.has("session-artifact-advisor") &&
+    advisors.has("manual-context-advisor")
+  ) {
+    return "mixed";
+  }
+  if (advisors.has("session-artifact-advisor")) {
+    return "session-artifact-advisor";
+  }
+  if (advisors.has("manual-context-advisor")) {
+    return "manual-context-advisor";
+  }
+  return "none";
 }
 
 function detectPackageManager(targetRoot) {

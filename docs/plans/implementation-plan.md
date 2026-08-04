@@ -259,11 +259,14 @@ codex-agent-template list
 - machine-readable CLI output through `--output json`;
 - `onboard-existing --check` for non-writing automation checks;
 - `.gitignore` generation for local AI overrides and environment files;
+- `.local/` gitignore for local proposal archives and sandbox notes;
 - generated validation for local override ignore rules and unresolved root-rule template variables;
 - optional packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`;
 - richer `onboard-existing` recommendations and severity-grouped findings;
 - discovery for project types, package manager, and suggested verification order;
+- discovery for manual context advisor and mature session advisor artifacts;
 - copy-ready verification draft in `onboard-existing` output;
+- local markdown proposal archive export through `--proposal-dir`;
 - workflow-specific rule content for `task-first` and `spec-tdd`;
 - manual-mode `context-artifact-advisor` generation through `--context-advisor`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.
@@ -275,6 +278,26 @@ codex-agent-template list
 - capture-mode context advisor;
 - `--force`;
 - update/merge engine.
+
+## Локальные proposal-артефакты
+
+Для онбординга внешних проектов не нужно писать proposal в `C:\tmp` или в целевой репозиторий.
+
+Рекомендуемый режим:
+
+```powershell
+node bin/codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\QAGym --agent codex --workflow task-first --context-advisor --dry-run --proposal-dir .local\proposals
+```
+
+CLI создаст markdown-файл в директории вида:
+
+```text
+.local/proposals/<project-name>/<timestamp>-onboarding-proposal.md
+```
+
+`.local/` намеренно добавлена в `.gitignore`, поэтому proposal-архивы можно использовать для ревью и сравнения между проектами без риска случайно закоммитить рабочие заметки.
+
+Если нужен один конкретный файл, остается режим `--proposal-file <path>`. `--proposal-file` и `--proposal-dir` нельзя использовать одновременно.
 
 ## Base artifacts v1
 

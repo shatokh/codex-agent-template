@@ -56,6 +56,10 @@ export async function runCli(argv) {
   }
 
   if (command === "onboard-existing") {
+    if (options["proposal-file"] && options["proposal-dir"]) {
+      throw new Error("Use either --proposal-file or --proposal-dir, not both.");
+    }
+
     const result = await onboardExisting({
       target: options.target || ".",
       agent: options.agent || "codex",
@@ -71,6 +75,10 @@ export async function runCli(argv) {
     if (options["proposal-file"]) {
       await writeProposalFile(options["proposal-file"], result);
       console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
+    }
+    if (options["proposal-dir"]) {
+      const proposalPath = await writeProposalDir(options["proposal-dir"], result);
+      console.log(`Proposal written: ${proposalPath}`);
     }
     if (options.check && !result.complete) {
       process.exitCode = 1;
@@ -184,7 +192,7 @@ function printHelp() {
 
 Commands:
   init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>] [--check] [--output text|json]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);
@@ -198,6 +206,23 @@ async function writeProposalFile(proposalFile, result) {
   const outputPath = path.resolve(proposalFile);
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(outputPath, renderOnboardProposal(result), "utf8");
+}
+
+async function writeProposalDir(proposalDir, result) {
+  const projectName = sanitizePathSegment(path.basename(result.target)) || "project";
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const outputPath = path.resolve(
+    proposalDir,
+    projectName,
+    `${timestamp}-onboarding-proposal.md`
+  );
+  await mkdir(path.dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, renderOnboardProposal(result), "utf8");
+  return outputPath;
+}
+
+function sanitizePathSegment(value) {
+  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
 function printOnboardResult(result) {
@@ -218,6 +243,11 @@ function printOnboardResult(result) {
   printList(result.discovery.projectTypes);
 
   console.log(`Package manager: ${result.discovery.packageManager || "none"}`);
+
+  console.log(`Advisor status: ${result.discovery.advisorStatus || "none"}`);
+
+  console.log("Advisor artifacts:");
+  printList(result.discovery.advisorArtifacts || []);
 
   console.log("Detected commands:");
   if (result.discovery.commands.length === 0) {

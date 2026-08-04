@@ -57,6 +57,32 @@ test("discover-existing reads bounded root project evidence", async () => {
   }
 });
 
+test("discover-existing detects mature session advisor artifacts", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-discover-advisor-"));
+
+  try {
+    await mkdir(path.join(tempRoot, ".agents", "skills", "session-artifact-advisor"), {
+      recursive: true,
+    });
+    await mkdir(path.join(tempRoot, "docs", "ai", "session-advisor"), { recursive: true });
+    await writeFile(
+      path.join(tempRoot, ".agents", "skills", "session-artifact-advisor", "SKILL.md"),
+      "# Session Artifact Advisor\n",
+      "utf8"
+    );
+
+    const discovery = discoverExisting(tempRoot);
+
+    assert.equal(discovery.advisorStatus, "session-artifact-advisor");
+    assert.deepEqual(discovery.advisorArtifacts.sort(), [
+      ".agents/skills/session-artifact-advisor/SKILL.md",
+      "docs/ai/session-advisor",
+    ].sort());
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("onboard-existing proposes files without writing", async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-"));
 
@@ -78,6 +104,40 @@ test("onboard-existing proposes files without writing", async () => {
 
     const files = await readdir(tempRoot);
     assert.deepEqual(files, ["AGENTS.md"]);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("onboard-existing flags mature advisor before proposing generic advisor", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-mature-advisor-"));
+
+  try {
+    await mkdir(path.join(tempRoot, ".agents", "skills", "session-artifact-advisor"), {
+      recursive: true,
+    });
+    await writeFile(
+      path.join(tempRoot, ".agents", "skills", "session-artifact-advisor", "SKILL.md"),
+      "# Session Artifact Advisor\n",
+      "utf8"
+    );
+
+    const result = await onboardExisting({
+      target: tempRoot,
+      agent: "codex",
+      workflow: "light",
+      contextAdvisor: true,
+    });
+
+    assert.equal(result.discovery.advisorStatus, "session-artifact-advisor");
+    assert.ok(
+      result.recommendations.includes(
+        "Existing mature advisor found; prefer manual merge or skip generic context advisor."
+      )
+    );
+    assert.ok(
+      result.findings.some((finding) => finding.title === "Existing mature advisor detected")
+    );
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -124,6 +184,8 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
       detectedProjectFiles: ["package.json"],
       projectTypes: ["node"],
       packageManager: "npm",
+      advisorStatus: "manual-context-advisor",
+      advisorArtifacts: [".agents/skills/context-artifact-advisor/SKILL.md"],
       commands: [{ kind: "unit-test", command: "npm run test", confidence: "high" }],
       suggestedVerification: [{ kind: "unit-test", command: "npm run test", confidence: "high" }],
     },
@@ -151,6 +213,9 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
   assert.match(markdown, /Complete: `no`/);
   assert.match(markdown, /`AGENTS\.md`/);
   assert.match(markdown, /## Suggested Verification/);
+  assert.match(markdown, /## Advisor Status/);
+  assert.match(markdown, /`manual-context-advisor`/);
+  assert.match(markdown, /context-artifact-advisor/);
   assert.match(markdown, /## Verification Draft/);
   assert.match(markdown, /\| Unit tests \| `npm run test` \| high \|/);
   assert.match(markdown, /unit-test: `npm run test` \(high\)/);
@@ -274,6 +339,77 @@ test("CLI onboard-existing writes proposal file only when requested", async () =
 
     const targetFiles = await readdir(target);
     assert.deepEqual(targetFiles, ["README.md"]);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI onboard-existing writes proposals under local proposal dir by project", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-proposal-dir-"));
+  const target = path.join(tempRoot, "Existing Project");
+  const proposalDir = path.join(tempRoot, ".local", "proposals");
+
+  try {
+    await mkdir(target);
+    await writeFile(path.join(target, "README.md"), "# Existing project\n", "utf8");
+
+    const result = await execFileAsync(process.execPath, [
+      cliPath,
+      "onboard-existing",
+      "--target",
+      target,
+      "--agent",
+      "codex",
+      "--workflow",
+      "light",
+      "--dry-run",
+      "--proposal-dir",
+      proposalDir,
+    ]);
+
+    assert.match(result.stdout, /Proposal written:/);
+
+    const projectProposalDir = path.join(proposalDir, "Existing-Project");
+    const proposalFiles = await readdir(projectProposalDir);
+    assert.equal(proposalFiles.length, 1);
+    assert.match(proposalFiles[0], /onboarding-proposal\.md$/);
+
+    const proposal = await readFile(path.join(projectProposalDir, proposalFiles[0]), "utf8");
+    assert.match(proposal, /# Onboard Existing Proposal/);
+    assert.match(proposal, /README\.md/);
+
+    const targetFiles = await readdir(target);
+    assert.deepEqual(targetFiles, ["README.md"]);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI onboard-existing rejects simultaneous proposal file and dir", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-proposal-conflict-"));
+
+  try {
+    await assert.rejects(
+      execFileAsync(process.execPath, [
+        cliPath,
+        "onboard-existing",
+        "--target",
+        tempRoot,
+        "--agent",
+        "codex",
+        "--workflow",
+        "light",
+        "--proposal-file",
+        path.join(tempRoot, "proposal.md"),
+        "--proposal-dir",
+        path.join(tempRoot, ".local", "proposals"),
+      ]),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /Use either --proposal-file or --proposal-dir, not both/);
+        return true;
+      }
+    );
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

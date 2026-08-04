@@ -26,6 +26,14 @@ ${renderList(result.discovery.projectTypes)}
 
 ${result.discovery.packageManager ? `- \`${result.discovery.packageManager}\`` : "- none"}
 
+## Advisor Status
+
+- \`${result.discovery.advisorStatus || "none"}\`
+
+## Advisor Artifacts
+
+${renderList(result.discovery.advisorArtifacts || [])}
+
 ## Detected Commands
 
 ${renderCommands(result.discovery.commands)}

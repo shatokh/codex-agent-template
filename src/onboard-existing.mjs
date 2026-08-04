@@ -23,13 +23,13 @@ export async function onboardExisting({ target, agent, workflow, packs = [], con
     proposedCreates: plan.created,
     blockedExisting: plan.blocked,
     complete: plan.created.length === 0,
-    recommendations: buildRecommendations({ plan }),
+    recommendations: buildRecommendations({ plan, discovery }),
     findings,
     verificationDraft: buildVerificationDraft(discovery),
   };
 }
 
-function buildRecommendations({ plan }) {
+function buildRecommendations({ plan, discovery }) {
   if (plan.created.length === 0) {
     return ["No generation needed for the selected agent/workflow/packs."];
   }
@@ -44,6 +44,13 @@ function buildRecommendations({ plan }) {
 
   if (plan.created.includes("docs/ai/verification.md")) {
     recommendations.push("Review detected commands and fill docs/ai/verification.md after generation.");
+  }
+
+  if (
+    plan.created.includes(".agents/skills/context-artifact-advisor/SKILL.md") &&
+    ["session-artifact-advisor", "mixed"].includes(discovery.advisorStatus)
+  ) {
+    recommendations.push("Existing mature advisor found; prefer manual merge or skip generic context advisor.");
   }
 
   return recommendations;
@@ -79,6 +86,14 @@ function buildFindings({ plan, discovery }) {
       severity: "medium",
       title: "Verification documentation is missing",
       detail: "Generated verification docs should be filled with real project commands.",
+    });
+  }
+
+  if (["session-artifact-advisor", "mixed"].includes(discovery.advisorStatus)) {
+    findings.push({
+      severity: "info",
+      title: "Existing mature advisor detected",
+      detail: "Discovery found session advisor artifacts; review before adding a generic context advisor.",
     });
   }
 

@@ -11,9 +11,9 @@ CLAUDE.local.md
 .agent-local/
 .codex-local/
 .claude-local/
+.local/
 
 # Temporary files
 *.tmp
 *.bak
 *.log
-

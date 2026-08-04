@@ -26,6 +26,7 @@ node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agen
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --pack test-harness --context-advisor --dry-run
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --check
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run --proposal-file C:\tmp\existing-project-proposal.md
+node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run --proposal-dir .local\proposals
 node bin/codex-agent-template.mjs validate --target C:\tmp\sample-project
 node bin/codex-agent-template.mjs list --output json
 ```
@@ -34,9 +35,11 @@ node bin/codex-agent-template.mjs list --output json
 `onboard-existing` currently prints a bounded discovery proposal and writes nothing.
 `onboard-existing --check` exits non-zero when the selected agent/workflow infrastructure is incomplete.
 `--proposal-file` writes the proposal markdown only when explicitly requested.
+`--proposal-dir` writes the proposal under `<dir>\<project-name>\...-onboarding-proposal.md`; `.local/` is gitignored and recommended for local review archives.
 Use `--output json` for machine-readable output from `list`, `init-new`, `onboard-existing`, and `validate`.
 Discovery currently checks common root config files, existing AI files, and package scripts.
 It reports detected project types, package manager, commands, and suggested verification order.
+It also detects existing manual or mature session advisor artifacts so a generic context advisor is not proposed blindly.
 `onboard-existing` also includes a copy-ready verification draft in text, JSON, and markdown proposal output.
 
 Generated workflow artifacts:
