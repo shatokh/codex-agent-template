@@ -23,6 +23,7 @@ export async function initNew({
   packs = [],
   contextAdvisor = false,
   projectKind = "code",
+  generatedAt,
   dryRun,
 }) {
   const targetRoot = path.resolve(target);
@@ -37,6 +38,7 @@ export async function initNew({
     packs: normalizedPacks,
     contextAdvisor,
     projectKind: normalizedProjectKind,
+    generatedAt,
   });
   const blocked = [];
   const created = [];
@@ -97,6 +99,29 @@ export async function initNew({
   };
 }
 
+export async function buildGeneratedFilePlan({
+  target,
+  agent,
+  workflow,
+  packs = [],
+  contextAdvisor = false,
+  projectKind = "code",
+  generatedAt,
+}) {
+  const targetRoot = path.resolve(target);
+  const projectName = path.basename(targetRoot);
+  return buildFilePlan({
+    targetRoot,
+    projectName,
+    agent,
+    workflow,
+    packs: normalizePacks(packs),
+    contextAdvisor,
+    projectKind: normalizeProjectKind(projectKind),
+    generatedAt,
+  });
+}
+
 async function buildFilePlan({
   targetRoot,
   projectName,
@@ -105,6 +130,7 @@ async function buildFilePlan({
   packs,
   contextAdvisor,
   projectKind,
+  generatedAt,
 }) {
   const files = [];
   const context = {
@@ -119,7 +145,7 @@ async function buildFilePlan({
     projectKindJson: JSON.stringify(projectKind),
     verificationTableRows: renderVerificationRows(projectKind),
     verificationGuidance: verificationGuidanceForProjectKind(projectKind),
-    generatedAt: new Date().toISOString().slice(0, 10),
+    generatedAt: generatedAt || new Date().toISOString().slice(0, 10),
   };
 
   if (agent === "codex") {

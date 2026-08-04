@@ -269,6 +269,7 @@ codex-agent-template list
 - local markdown proposal archive export through `--proposal-dir`;
 - explicit project kind support through `--project-kind code|docs|game-design|boardgame`;
 - boardgame/game-design/docs verification profiles that avoid fake software test commands;
+- `update-existing` dry-run comparison for existing generated AI files;
 - workflow-specific rule content for `task-first` and `spec-tdd`;
 - manual-mode `context-artifact-advisor` generation through `--context-advisor`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.
@@ -279,7 +280,7 @@ codex-agent-template list
 - `onboard-existing` file writing;
 - capture-mode context advisor;
 - `--force`;
-- update/merge engine.
+- apply mode for update/merge engine.
 
 ## Локальные proposal-артефакты
 

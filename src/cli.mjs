@@ -5,6 +5,8 @@ import { initNew } from "./init-new.mjs";
 import { onboardExisting } from "./onboard-existing.mjs";
 import { supportedProjectKinds } from "./project-kind.mjs";
 import { renderOnboardProposal } from "./render-onboard-proposal.mjs";
+import { renderUpdateProposal } from "./render-update-proposal.mjs";
+import { updateExisting } from "./update-existing.mjs";
 import { validateGeneratedProject } from "./validate-generated-project.mjs";
 
 const agentModes = ["codex", "claude", "codex+claude"];
@@ -78,11 +80,48 @@ export async function runCli(argv) {
       printOnboardResult(result);
     }
     if (options["proposal-file"]) {
-      await writeProposalFile(options["proposal-file"], result);
+      await writeProposalFile(options["proposal-file"], renderOnboardProposal(result));
       console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
     }
     if (options["proposal-dir"]) {
       const proposalPath = await writeProposalDir(options["proposal-dir"], result);
+      console.log(`Proposal written: ${proposalPath}`);
+    }
+    if (options.check && !result.complete) {
+      process.exitCode = 1;
+    }
+    return;
+  }
+
+  if (command === "update-existing") {
+    if (options["proposal-file"] && options["proposal-dir"]) {
+      throw new Error("Use either --proposal-file or --proposal-dir, not both.");
+    }
+
+    const result = await updateExisting({
+      target: options.target || ".",
+      agent: options.agent || "codex",
+      workflow: options.workflow || "light",
+      projectKind: options["project-kind"] || "code",
+      packs: options.pack || [],
+      contextAdvisor: Boolean(options["context-advisor"]),
+    });
+    if (options.output === "json") {
+      printJson(result);
+    } else {
+      printUpdateResult(result);
+    }
+    if (options["proposal-file"]) {
+      await writeProposalFile(options["proposal-file"], renderUpdateProposal(result));
+      console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
+    }
+    if (options["proposal-dir"]) {
+      const proposalPath = await writeProposalDir(
+        options["proposal-dir"],
+        result,
+        renderUpdateProposal,
+        "update-proposal"
+      );
       console.log(`Proposal written: ${proposalPath}`);
     }
     if (options.check && !result.complete) {
@@ -208,6 +247,7 @@ function printHelp() {
 Commands:
   init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
   onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
+  update-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);
@@ -217,22 +257,27 @@ function printJson(value) {
   console.log(JSON.stringify(value, null, 2));
 }
 
-async function writeProposalFile(proposalFile, result) {
+async function writeProposalFile(proposalFile, markdown) {
   const outputPath = path.resolve(proposalFile);
   await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, renderOnboardProposal(result), "utf8");
+  await writeFile(outputPath, markdown, "utf8");
 }
 
-async function writeProposalDir(proposalDir, result) {
+async function writeProposalDir(
+  proposalDir,
+  result,
+  renderProposal = renderOnboardProposal,
+  suffix = "onboarding-proposal"
+) {
   const projectName = sanitizePathSegment(path.basename(result.target)) || "project";
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const outputPath = path.resolve(
     proposalDir,
     projectName,
-    `${timestamp}-onboarding-proposal.md`
+    `${timestamp}-${suffix}.md`
   );
   await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, renderOnboardProposal(result), "utf8");
+  await writeFile(outputPath, renderProposal(result), "utf8");
   return outputPath;
 }
 
@@ -314,6 +359,43 @@ function printOnboardResult(result) {
       console.log(`- ${finding.severity}: ${finding.title} - ${finding.detail}`);
     }
   }
+
+  console.log(`Complete: ${result.complete ? "yes" : "no"}`);
+}
+
+function printUpdateResult(result) {
+  console.log("Update-existing proposal: no files written.");
+  console.log(`Target: ${result.target}`);
+  console.log(`Agent: ${result.agent}`);
+  console.log(`Workflow: ${result.workflow}`);
+  console.log(`Project kind: ${result.projectKind}`);
+  console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
+  console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
+
+  console.log("Existing template metadata:");
+  if (!result.existingConfig.exists) {
+    console.log("- none");
+  } else if (!result.existingConfig.valid) {
+    console.log(`- invalid .agent-template.json: ${result.existingConfig.error}`);
+  } else {
+    const config = result.existingConfig.config;
+    console.log(`- agent: ${config.agent || "unknown"}`);
+    console.log(`- workflow: ${config.workflow || "unknown"}`);
+    console.log(`- projectKind: ${config.projectKind || "code"}`);
+    console.log(`- generatedAt: ${config.generatedAt || "unknown"}`);
+  }
+
+  console.log("Missing files to create:");
+  printList(result.missingCreates);
+
+  console.log("Existing files to review for update:");
+  printList(result.updateCandidates);
+
+  console.log("Unchanged generated files:");
+  printList(result.unchanged);
+
+  console.log("Recommendations:");
+  printList(result.recommendations);
 
   console.log(`Complete: ${result.complete ? "yes" : "no"}`);
 }

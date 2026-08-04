@@ -106,6 +106,22 @@ node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\Studio
 - `Configuration issues`
 - `Recommendations`
 
+## Existing Generated Files Update Review
+
+Если AI-инфраструктура уже создана, но template изменился, сначала запускай update review без записи:
+
+```powershell
+node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioProjects\existing-repo --agent codex --workflow task-first --project-kind boardgame --pack test-harness --context-advisor --proposal-dir .local\proposals
+```
+
+Команда покажет:
+
+- `Missing files to create`
+- `Existing files to review for update`
+- `Unchanged generated files`
+
+`update-existing` в текущем виде ничего не пишет в target repo. Это review/diff gate перед ручным merge или будущим apply-режимом.
+
 ## Project Kind
 
 Используй `--project-kind` явно, особенно для не-кодовых проектов.
@@ -155,6 +171,7 @@ docs
 4. Run `validate --target <project>`.
 5. Run `onboard-existing --check` with the same options.
 6. Review git status in target repo before staging anything.
+7. Use `update-existing --proposal-dir .local\proposals` after template upgrades.
 
 ## Codex Prompt
 
