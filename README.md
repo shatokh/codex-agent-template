@@ -22,8 +22,8 @@ The v1 target is deliberately narrow:
 ```powershell
 node bin/codex-agent-template.mjs list
 node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light --dry-run
-node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light
-node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run
+node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light --pack privacy --pack security
+node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --pack test-harness --dry-run
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --check
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run --proposal-file C:\tmp\existing-project-proposal.md
 node bin/codex-agent-template.mjs validate --target C:\tmp\sample-project
@@ -43,6 +43,7 @@ Generated workflow artifacts:
 - all workflows include a `.gitignore` with local AI override and `.env` entries.
 - `task-first`: `light` plus `docs/tasks/TEMPLATE.md`.
 - `spec-tdd`: `light` plus `docs/specs/TEMPLATE.md` and `docs/ai-change-records/TEMPLATE.md`.
+- optional packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`.
 
 See the implementation plan:
 

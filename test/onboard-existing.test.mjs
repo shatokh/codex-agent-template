@@ -107,6 +107,7 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
     target: "C:/tmp/sample",
     agent: "codex",
     workflow: "task-first",
+    packs: [],
     discovery: {
       existingAiFiles: ["AGENTS.md"],
       detectedProjectFiles: ["package.json"],
@@ -114,11 +115,20 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
     },
     proposedCreates: ["docs/tasks/TEMPLATE.md"],
     blockedExisting: ["AGENTS.md"],
+    recommendations: ["Manual merge review needed for existing files before generation."],
+    findings: [
+      {
+        severity: "high",
+        title: "Missing selected AI infrastructure files",
+        detail: "1 files would be created for the selected options.",
+      },
+    ],
   };
 
   const markdown = renderOnboardProposal(result);
 
   assert.match(markdown, /# Onboard Existing Proposal/);
+  assert.match(markdown, /Packs: `none`/);
   assert.match(markdown, /Complete: `no`/);
   assert.match(markdown, /`AGENTS\.md`/);
   assert.match(markdown, /unit-test: `npm run test` \(high\)/);
@@ -210,6 +220,8 @@ test("CLI onboard-existing writes proposal file only when requested", async () =
     const proposal = await readFile(proposalFile, "utf8");
     assert.match(proposal, /# Onboard Existing Proposal/);
     assert.match(proposal, /README\.md/);
+    assert.match(proposal, /## Recommendations/);
+    assert.match(proposal, /## Findings/);
 
     const targetFiles = await readdir(target);
     assert.deepEqual(targetFiles, ["README.md"]);

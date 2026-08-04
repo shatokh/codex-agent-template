@@ -1,0 +1,17 @@
+# Test Harness Pack
+
+Use this pack when the project needs reliable test setup, fixtures, fakes, or repeatable local verification.
+
+## Rules
+
+- Prefer focused tests before broad suites while iterating.
+- Use fakes/mocks for platform, network, time, filesystem, and paid-service boundaries.
+- Keep test data deterministic and local.
+- Avoid arbitrary sleeps when a state-based wait or deterministic helper is available.
+- Record flaky or unavailable checks instead of claiming they passed.
+
+## Verification
+
+- Keep `docs/ai/verification.md` current with real commands.
+- Add helper notes for common setup failures and workarounds.
+

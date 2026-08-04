@@ -142,6 +142,33 @@ test("CLI init-new writes files and CLI validate accepts them", async () => {
   }
 });
 
+test("init-new writes selected optional packs", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-packs-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    const result = await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      packs: ["privacy", "test-harness"],
+      dryRun: false,
+    });
+
+    assert.deepEqual(result.packs, ["privacy", "test-harness"]);
+    assert.ok(result.written.includes("docs/ai/packs/privacy.md"));
+    assert.ok(result.written.includes("docs/ai/packs/test-harness.md"));
+
+    const config = JSON.parse(await readFile(path.join(target, ".agent-template.json"), "utf8"));
+    assert.deepEqual(config.packs, ["privacy", "test-harness"]);
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, true, validation.errors.join("\n"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("generated validation rejects missing local override ignore rules", async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-missing-gitignore-"));
   const target = path.join(tempRoot, "sample-project");
@@ -181,6 +208,29 @@ test("generated validation rejects missing workflow artifacts", async () => {
     const validation = await validateGeneratedProject(target);
     assert.equal(validation.valid, false);
     assert.ok(validation.errors.includes("missing docs/specs/TEMPLATE.md"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("generated validation rejects missing optional pack artifacts", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-missing-pack-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      packs: ["privacy"],
+      dryRun: false,
+    });
+
+    await rm(path.join(target, "docs", "ai", "packs", "privacy.md"), { force: true });
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, false);
+    assert.ok(validation.errors.includes("missing docs/ai/packs/privacy.md"));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

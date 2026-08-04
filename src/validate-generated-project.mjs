@@ -3,6 +3,7 @@ import path from "node:path";
 
 const supportedAgents = ["codex", "claude", "codex+claude"];
 const supportedWorkflows = ["light", "task-first", "spec-tdd"];
+const supportedPacks = ["privacy", "external-services", "security", "test-harness", "docs"];
 
 export async function validateGeneratedProject(target) {
   const targetRoot = path.resolve(target);
@@ -31,6 +32,16 @@ export async function validateGeneratedProject(target) {
   }
   if (!supportedWorkflows.includes(config.workflow)) {
     errors.push(`unsupported workflow in .agent-template.json: ${config.workflow}`);
+  }
+  const packs = config.packs || [];
+  if (!Array.isArray(packs)) {
+    errors.push("packs in .agent-template.json must be an array");
+  } else {
+    for (const pack of packs) {
+      if (!supportedPacks.includes(pack)) {
+        errors.push(`unsupported pack in .agent-template.json: ${pack}`);
+      }
+    }
   }
 
   if (config.agent === "codex" || config.agent === "codex+claude") {
@@ -77,6 +88,12 @@ export async function validateGeneratedProject(target) {
   } else if (config.workflow === "spec-tdd") {
     requireFile(targetRoot, "docs/specs/TEMPLATE.md", errors);
     requireFile(targetRoot, "docs/ai-change-records/TEMPLATE.md", errors);
+  }
+
+  if (Array.isArray(packs)) {
+    for (const pack of packs) {
+      requireFile(targetRoot, `docs/ai/packs/${pack}.md`, errors);
+    }
   }
 
   return {

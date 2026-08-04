@@ -1,0 +1,17 @@
+# Security Pack
+
+Use this pack when work touches authentication, authorization, secrets, dependency security, sandboxing, CI permissions, or data exposure.
+
+## Rules
+
+- Treat real secrets as compromised if they appear in tracked files or logs.
+- Keep secret placeholders fake and clearly non-functional.
+- Do not downgrade security checks without explicit approval.
+- Keep dependency/security updates separate from unrelated features.
+- Prefer least privilege for scripts, CI, and local automation.
+
+## Verification
+
+- Run available security or dependency checks.
+- If checks are not configured, record that explicitly in `docs/ai/verification.md`.
+

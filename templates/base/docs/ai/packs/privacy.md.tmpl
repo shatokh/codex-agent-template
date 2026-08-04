@@ -1,0 +1,17 @@
+# Privacy Pack
+
+Use this pack when the project handles personal data, user documents, private content, telemetry, logs, or analytics.
+
+## Rules
+
+- Do not print, commit, or persist sensitive user data.
+- Keep logs allowlisted and generic.
+- Do not send private content to external services unless explicitly approved.
+- Redact paths, payloads, tokens, identifiers, and raw user content from reports.
+- Add or update tests when privacy-sensitive logging or error handling changes.
+
+## Verification
+
+- Confirm logs and errors do not expose sensitive values.
+- Record any telemetry or external-service impact.
+

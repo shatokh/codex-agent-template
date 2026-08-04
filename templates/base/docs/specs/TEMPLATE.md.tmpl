@@ -28,6 +28,8 @@ TBD
 
 - Write or update failing tests before behavior implementation when practical.
 - Run the smallest relevant verification first.
+- Do not remove or weaken tests only to make checks pass.
+- Record checks that are not configured or cannot run locally.
 
 ## Risks
 
@@ -39,3 +41,13 @@ Classification: Low | Medium | High
 
 Reason:
 
+## Forced TDD Notes
+
+For behavior changes:
+
+1. Add or update a failing test that describes the expected behavior.
+2. Implement the smallest change that makes the test pass.
+3. Run focused verification.
+4. Refactor only inside approved scope.
+
+If TDD is not practical, record why in this spec before implementation.

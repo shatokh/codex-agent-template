@@ -8,6 +8,7 @@ import { validateGeneratedProject } from "./validate-generated-project.mjs";
 
 const agentModes = ["codex", "claude", "codex+claude"];
 const workflows = ["light", "task-first", "spec-tdd"];
+const packs = ["privacy", "external-services", "security", "test-harness", "docs"];
 
 export async function runCli(argv) {
   const [command, ...rest] = argv;
@@ -22,12 +23,14 @@ export async function runCli(argv) {
     const result = {
       agents: agentModes,
       workflows,
+      packs,
     };
     if (options.output === "json") {
       printJson(result);
     } else {
       console.log("Agents: codex, claude, codex+claude");
       console.log("Workflows: light, task-first, spec-tdd");
+      console.log("Packs: privacy, external-services, security, test-harness, docs");
     }
     return;
   }
@@ -37,6 +40,7 @@ export async function runCli(argv) {
       target: options.target || ".",
       agent: options.agent || "codex",
       workflow: options.workflow || "light",
+      packs: options.pack || [],
       dryRun: Boolean(options["dry-run"]),
     });
     if (options.output === "json") {
@@ -55,6 +59,7 @@ export async function runCli(argv) {
       target: options.target || ".",
       agent: options.agent || "codex",
       workflow: options.workflow || "light",
+      packs: options.pack || [],
     });
     if (options.output === "json") {
       printJson(result);
@@ -110,7 +115,12 @@ function parseOptions(argv) {
       throw new Error(`Missing value for --${key}`);
     }
     index += 1;
-    options[key] = value;
+    if (key === "pack") {
+      options.pack ??= [];
+      options.pack.push(value);
+    } else {
+      options[key] = value;
+    }
   }
 
   if (options.agent && !agentModes.includes(options.agent)) {
@@ -122,6 +132,13 @@ function parseOptions(argv) {
   if (options.output && !["text", "json"].includes(options.output)) {
     throw new Error(`Unsupported --output value: ${options.output}`);
   }
+  if (options.pack) {
+    for (const pack of options.pack) {
+      if (!packs.includes(pack)) {
+        throw new Error(`Unsupported --pack value: ${pack}`);
+      }
+    }
+  }
 
   return options;
 }
@@ -131,6 +148,7 @@ function printInitResult(result) {
   console.log(`Target: ${result.target}`);
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
+  console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
 
   if (result.created.length > 0) {
     console.log("Files to create:");
@@ -162,8 +180,8 @@ function printHelp() {
   console.log(`codex-agent-template
 
 Commands:
-  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--output text|json]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--dry-run] [--proposal-file <path>] [--check] [--output text|json]
+  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--dry-run] [--output text|json]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--dry-run] [--proposal-file <path>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);
@@ -184,6 +202,7 @@ function printOnboardResult(result) {
   console.log(`Target: ${result.target}`);
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
+  console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
 
   console.log("Existing AI files:");
   printList(result.discovery.existingAiFiles);
@@ -205,6 +224,18 @@ function printOnboardResult(result) {
 
   console.log("Blocked existing files:");
   printList(result.blockedExisting);
+
+  console.log("Recommendations:");
+  printList(result.recommendations);
+
+  console.log("Findings:");
+  if (result.findings.length === 0) {
+    console.log("- none");
+  } else {
+    for (const finding of result.findings) {
+      console.log(`- ${finding.severity}: ${finding.title} - ${finding.detail}`);
+    }
+  }
 
   console.log(`Complete: ${result.complete ? "yes" : "no"}`);
 }

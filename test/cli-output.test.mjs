@@ -17,6 +17,7 @@ test("CLI list supports JSON output", async () => {
 
   assert.deepEqual(parsed.agents, ["codex", "claude", "codex+claude"]);
   assert.deepEqual(parsed.workflows, ["light", "task-first", "spec-tdd"]);
+  assert.deepEqual(parsed.packs, ["privacy", "external-services", "security", "test-harness", "docs"]);
 });
 
 test("CLI init-new dry-run supports JSON output", async () => {
@@ -90,6 +91,10 @@ test("CLI onboard-existing supports JSON output", async () => {
       "codex+claude",
       "--workflow",
       "task-first",
+      "--pack",
+      "privacy",
+      "--pack",
+      "security",
       "--dry-run",
       "--output",
       "json",
@@ -97,9 +102,11 @@ test("CLI onboard-existing supports JSON output", async () => {
     const parsed = JSON.parse(result.stdout);
 
     assert.equal(parsed.agent, "codex+claude");
+    assert.deepEqual(parsed.packs, ["privacy", "security"]);
     assert.equal(parsed.complete, false);
     assert.ok(parsed.proposedCreates.includes("AGENTS.md"));
     assert.ok(parsed.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
+    assert.ok(parsed.proposedCreates.includes("docs/ai/packs/privacy.md"));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

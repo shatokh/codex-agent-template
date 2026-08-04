@@ -260,12 +260,14 @@ codex-agent-template list
 - `onboard-existing --check` for non-writing automation checks;
 - `.gitignore` generation for local AI overrides and environment files;
 - generated validation for local override ignore rules and unresolved root-rule template variables;
+- optional packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`;
+- richer `onboard-existing` recommendations and severity-grouped findings;
+- workflow-specific rule content for `task-first` and `spec-tdd`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.
 
 Не реализовано:
 
 - interactive prompts;
-- packs;
 - `onboard-existing` file writing;
 - `--force`;
 - update/merge engine.

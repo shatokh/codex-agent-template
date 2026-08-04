@@ -1,0 +1,17 @@
+# External Services Pack
+
+Use this pack when the project talks to paid APIs, messaging platforms, cloud services, production accounts, or external automation targets.
+
+## Rules
+
+- Do not call paid or production services without explicit approval.
+- Do not print or commit API keys, sessions, tokens, cookies, or account metadata.
+- Prefer mocks, fakes, local emulators, or dry-run modes for tests.
+- Keep dependency, security, and external-service changes separate from feature work.
+- Document rate limits, costs, and irreversible operations before running commands.
+
+## Verification
+
+- State whether verification used mocks/local services or real external services.
+- Record unverified external-service behavior as residual risk.
+

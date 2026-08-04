@@ -7,10 +7,13 @@ const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(moduleDir, "..");
 const templatesRoot = path.join(projectRoot, "templates", "base");
 
-export async function initNew({ target, agent, workflow, dryRun }) {
+const supportedPacks = ["privacy", "external-services", "security", "test-harness", "docs"];
+
+export async function initNew({ target, agent, workflow, packs = [], dryRun }) {
   const targetRoot = path.resolve(target);
   const projectName = path.basename(targetRoot);
-  const plan = await buildFilePlan({ targetRoot, projectName, agent, workflow });
+  const normalizedPacks = normalizePacks(packs);
+  const plan = await buildFilePlan({ targetRoot, projectName, agent, workflow, packs: normalizedPacks });
   const blocked = [];
   const created = [];
   const written = [];
@@ -34,6 +37,7 @@ export async function initNew({ target, agent, workflow, dryRun }) {
       target: targetRoot,
       agent,
       workflow,
+      packs: normalizedPacks,
       dryRun,
       created,
       written,
@@ -55,6 +59,7 @@ export async function initNew({ target, agent, workflow, dryRun }) {
     target: targetRoot,
     agent,
     workflow,
+    packs: normalizedPacks,
     dryRun,
     created,
     written,
@@ -64,12 +69,14 @@ export async function initNew({ target, agent, workflow, dryRun }) {
   };
 }
 
-async function buildFilePlan({ targetRoot, projectName, agent, workflow }) {
+async function buildFilePlan({ targetRoot, projectName, agent, workflow, packs }) {
   const files = [];
   const context = {
     projectName,
     agent,
     workflow,
+    packs: packs.join(", ") || "none",
+    packsJson: JSON.stringify(packs),
     generatedAt: new Date().toISOString().slice(0, 10),
   };
 
@@ -136,7 +143,28 @@ async function buildFilePlan({ targetRoot, projectName, agent, workflow }) {
     );
   }
 
+  for (const pack of packs) {
+    files.push(
+      await renderPlannedFile(
+        targetRoot,
+        `docs/ai/packs/${pack}.md`,
+        `docs/ai/packs/${pack}.md.tmpl`,
+        context
+      )
+    );
+  }
+
   return files;
+}
+
+function normalizePacks(packs) {
+  const unique = [...new Set(packs)];
+  for (const pack of unique) {
+    if (!supportedPacks.includes(pack)) {
+      throw new Error(`Unsupported pack: ${pack}`);
+    }
+  }
+  return unique;
 }
 
 async function renderPlannedFile(targetRoot, relativePath, templateName, context) {
