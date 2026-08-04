@@ -60,6 +60,7 @@ test("onboard-existing proposes files without writing", async () => {
     });
 
     assert.ok(result.blockedExisting.includes("AGENTS.md"));
+    assert.ok(result.proposedCreates.includes(".gitignore"));
     assert.ok(result.proposedCreates.includes("CLAUDE.md"));
     assert.ok(result.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
 

@@ -31,7 +31,7 @@ test("init-new dry-run reports files without writing", async () => {
     });
 
     assert.equal(result.dryRun, true);
-    assert.deepEqual(result.created.sort(), [".agent-template.json", "AGENTS.md", ...lightDocs].sort());
+    assert.deepEqual(result.created.sort(), [".agent-template.json", ".gitignore", "AGENTS.md", ...lightDocs].sort());
     assert.equal(existsSync(target), false);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
@@ -52,6 +52,7 @@ test("init-new writes codex+claude files and generated validation passes", async
 
     assert.deepEqual(result.written.sort(), [
       ".agent-template.json",
+      ".gitignore",
       "AGENTS.md",
       "CLAUDE.md",
       ...lightDocs,
@@ -61,6 +62,7 @@ test("init-new writes codex+claude files and generated validation passes", async
     const files = await listFiles(target);
     assert.deepEqual(files.sort(), [
       ".agent-template.json",
+      ".gitignore",
       "AGENTS.md",
       "CLAUDE.md",
       ...lightDocs,
@@ -96,7 +98,7 @@ test("init-new blocks existing files by default", async () => {
       dryRun: false,
     });
 
-    assert.deepEqual(second.blocked.sort(), [".agent-template.json", "AGENTS.md", ...lightDocs].sort());
+    assert.deepEqual(second.blocked.sort(), [".agent-template.json", ".gitignore", "AGENTS.md", ...lightDocs].sort());
     assert.deepEqual(second.written, []);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
@@ -124,16 +126,39 @@ test("CLI init-new writes files and CLI validate accepts them", async () => {
     assert.match(validate.stdout, /Generated project validation passed/);
 
     const files = await readdir(target);
-    assert.deepEqual(files.sort(), [".agent-template.json", "CLAUDE.md", "docs"].sort());
+    assert.deepEqual(files.sort(), [".agent-template.json", ".gitignore", "CLAUDE.md", "docs"].sort());
 
     const allFiles = await listFiles(target);
     assert.deepEqual(allFiles.sort(), [
       ".agent-template.json",
+      ".gitignore",
       "CLAUDE.md",
       ...lightDocs,
       "docs/specs/TEMPLATE.md",
       "docs/ai-change-records/TEMPLATE.md",
     ].sort());
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("generated validation rejects missing local override ignore rules", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-missing-gitignore-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      dryRun: false,
+    });
+
+    await rm(path.join(target, ".gitignore"), { force: true });
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, false);
+    assert.ok(validation.errors.includes("missing .gitignore"));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

@@ -38,6 +38,7 @@ Discovery currently checks common root config files, existing AI files, and pack
 Generated workflow artifacts:
 
 - `light`: root agent instructions, `.agent-template.json`, and `docs/ai/*`.
+- all workflows include a `.gitignore` with local AI override and `.env` entries.
 - `task-first`: `light` plus `docs/tasks/TEMPLATE.md`.
 - `spec-tdd`: `light` plus `docs/specs/TEMPLATE.md` and `docs/ai-change-records/TEMPLATE.md`.
 

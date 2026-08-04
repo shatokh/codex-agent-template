@@ -92,6 +92,7 @@ async function buildFilePlan({ targetRoot, projectName, agent, workflow }) {
   files.push(
     await renderPlannedFile(targetRoot, ".agent-template.json", "agent-template.json.tmpl", context)
   );
+  files.push(await renderPlannedFile(targetRoot, ".gitignore", "gitignore.tmpl", context));
   files.push(
     await renderPlannedFile(
       targetRoot,

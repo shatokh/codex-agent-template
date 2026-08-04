@@ -17,6 +17,7 @@ const requiredFiles = [
   "templates/base/CLAUDE.md.tmpl",
   "templates/base/CLAUDE.import-agents.md.tmpl",
   "templates/base/agent-template.json.tmpl",
+  "templates/base/gitignore.tmpl",
   "templates/base/docs/ai/onboarding-notes.md.tmpl",
   "templates/base/docs/ai/rule-quality-checklist.md.tmpl",
   "templates/base/docs/ai/verification.md.tmpl",

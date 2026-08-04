@@ -59,7 +59,14 @@ export async function validateGeneratedProject(target) {
     if (lineCount > 200) {
       errors.push(`${path.basename(rootInstructionFile)} exceeds 200 lines`);
     }
+    const rootInstructionText = readFileSync(rootInstructionFile, "utf8");
+    if (/\{\{[a-zA-Z0-9_]+\}\}/.test(rootInstructionText)) {
+      errors.push(`${path.basename(rootInstructionFile)} contains unresolved template variables`);
+    }
   }
+
+  requireFile(targetRoot, ".gitignore", errors);
+  validateGitignore(targetRoot, errors);
 
   requireFile(targetRoot, "docs/ai/onboarding-notes.md", errors);
   requireFile(targetRoot, "docs/ai/rule-quality-checklist.md", errors);
@@ -81,5 +88,30 @@ export async function validateGeneratedProject(target) {
 function requireFile(targetRoot, relativePath, errors) {
   if (!existsSync(path.join(targetRoot, relativePath))) {
     errors.push(`missing ${relativePath}`);
+  }
+}
+
+function validateGitignore(targetRoot, errors) {
+  const gitignorePath = path.join(targetRoot, ".gitignore");
+  if (!existsSync(gitignorePath)) {
+    return;
+  }
+
+  const text = readFileSync(gitignorePath, "utf8");
+  const requiredEntries = [
+    "AGENTS.local.md",
+    "CLAUDE.local.md",
+    ".agent-local/",
+    ".codex-local/",
+    ".claude-local/",
+    ".env",
+    ".env.*",
+    "!.env.example",
+  ];
+
+  for (const entry of requiredEntries) {
+    if (!text.includes(entry)) {
+      errors.push(`.gitignore missing ${entry}`);
+    }
   }
 }

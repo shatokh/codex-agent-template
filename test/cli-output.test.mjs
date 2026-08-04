@@ -42,6 +42,7 @@ test("CLI init-new dry-run supports JSON output", async () => {
     assert.equal(parsed.dryRun, true);
     assert.equal(parsed.agent, "codex");
     assert.ok(parsed.created.includes("AGENTS.md"));
+    assert.ok(parsed.created.includes(".gitignore"));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -102,4 +103,3 @@ test("CLI onboard-existing supports JSON output", async () => {
     await rm(tempRoot, { recursive: true, force: true });
   }
 });
-
