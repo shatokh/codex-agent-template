@@ -92,6 +92,48 @@ async function buildFilePlan({ targetRoot, projectName, agent, workflow }) {
   files.push(
     await renderPlannedFile(targetRoot, ".agent-template.json", "agent-template.json.tmpl", context)
   );
+  files.push(
+    await renderPlannedFile(
+      targetRoot,
+      "docs/ai/onboarding-notes.md",
+      "docs/ai/onboarding-notes.md.tmpl",
+      context
+    )
+  );
+  files.push(
+    await renderPlannedFile(
+      targetRoot,
+      "docs/ai/rule-quality-checklist.md",
+      "docs/ai/rule-quality-checklist.md.tmpl",
+      context
+    )
+  );
+  files.push(
+    await renderPlannedFile(
+      targetRoot,
+      "docs/ai/verification.md",
+      "docs/ai/verification.md.tmpl",
+      context
+    )
+  );
+
+  if (workflow === "task-first") {
+    files.push(
+      await renderPlannedFile(targetRoot, "docs/tasks/TEMPLATE.md", "docs/tasks/TEMPLATE.md.tmpl", context)
+    );
+  } else if (workflow === "spec-tdd") {
+    files.push(
+      await renderPlannedFile(targetRoot, "docs/specs/TEMPLATE.md", "docs/specs/TEMPLATE.md.tmpl", context)
+    );
+    files.push(
+      await renderPlannedFile(
+        targetRoot,
+        "docs/ai-change-records/TEMPLATE.md",
+        "docs/ai-change-records/TEMPLATE.md.tmpl",
+        context
+      )
+    );
+  }
 
   return files;
 }

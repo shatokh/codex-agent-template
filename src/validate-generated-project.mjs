@@ -61,6 +61,17 @@ export async function validateGeneratedProject(target) {
     }
   }
 
+  requireFile(targetRoot, "docs/ai/onboarding-notes.md", errors);
+  requireFile(targetRoot, "docs/ai/rule-quality-checklist.md", errors);
+  requireFile(targetRoot, "docs/ai/verification.md", errors);
+
+  if (config.workflow === "task-first") {
+    requireFile(targetRoot, "docs/tasks/TEMPLATE.md", errors);
+  } else if (config.workflow === "spec-tdd") {
+    requireFile(targetRoot, "docs/specs/TEMPLATE.md", errors);
+    requireFile(targetRoot, "docs/ai-change-records/TEMPLATE.md", errors);
+  }
+
   return {
     valid: errors.length === 0,
     errors,

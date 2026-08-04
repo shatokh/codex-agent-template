@@ -253,13 +253,13 @@ codex-agent-template list
 - `init-new` file writing;
 - default no-overwrite blocking;
 - generated project validation;
+- workflow-specific docs generation for `light`, `task-first`, and `spec-tdd`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.
 
 Не реализовано:
 
 - interactive prompts;
 - packs;
-- workflow-specific docs generation;
 - `onboard-existing`;
 - `--force`;
 - update/merge engine.

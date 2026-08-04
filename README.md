@@ -28,6 +28,12 @@ node bin/codex-agent-template.mjs validate --target C:\tmp\sample-project
 
 `init-new` never overwrites existing generated files by default.
 
+Generated workflow artifacts:
+
+- `light`: root agent instructions, `.agent-template.json`, and `docs/ai/*`.
+- `task-first`: `light` plus `docs/tasks/TEMPLATE.md`.
+- `spec-tdd`: `light` plus `docs/specs/TEMPLATE.md` and `docs/ai-change-records/TEMPLATE.md`.
+
 See the implementation plan:
 
 - [Implementation Plan](docs/plans/implementation-plan.md)

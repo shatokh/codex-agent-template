@@ -12,6 +12,11 @@ import { validateGeneratedProject } from "../src/validate-generated-project.mjs"
 
 const execFileAsync = promisify(execFile);
 const cliPath = path.resolve("bin", "codex-agent-template.mjs");
+const lightDocs = [
+  "docs/ai/onboarding-notes.md",
+  "docs/ai/rule-quality-checklist.md",
+  "docs/ai/verification.md",
+];
 
 test("init-new dry-run reports files without writing", async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-dry-run-"));
@@ -26,7 +31,7 @@ test("init-new dry-run reports files without writing", async () => {
     });
 
     assert.equal(result.dryRun, true);
-    assert.deepEqual(result.created.sort(), [".agent-template.json", "AGENTS.md"].sort());
+    assert.deepEqual(result.created.sort(), [".agent-template.json", "AGENTS.md", ...lightDocs].sort());
     assert.equal(existsSync(target), false);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
@@ -49,10 +54,18 @@ test("init-new writes codex+claude files and generated validation passes", async
       ".agent-template.json",
       "AGENTS.md",
       "CLAUDE.md",
+      ...lightDocs,
+      "docs/tasks/TEMPLATE.md",
     ].sort());
 
-    const files = await readdir(target);
-    assert.deepEqual(files.sort(), [".agent-template.json", "AGENTS.md", "CLAUDE.md"].sort());
+    const files = await listFiles(target);
+    assert.deepEqual(files.sort(), [
+      ".agent-template.json",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ...lightDocs,
+      "docs/tasks/TEMPLATE.md",
+    ].sort());
 
     const claude = await readFile(path.join(target, "CLAUDE.md"), "utf8");
     assert.match(claude, /@AGENTS\.md/);
@@ -83,7 +96,7 @@ test("init-new blocks existing files by default", async () => {
       dryRun: false,
     });
 
-    assert.deepEqual(second.blocked.sort(), [".agent-template.json", "AGENTS.md"].sort());
+    assert.deepEqual(second.blocked.sort(), [".agent-template.json", "AGENTS.md", ...lightDocs].sort());
     assert.deepEqual(second.written, []);
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
@@ -111,8 +124,56 @@ test("CLI init-new writes files and CLI validate accepts them", async () => {
     assert.match(validate.stdout, /Generated project validation passed/);
 
     const files = await readdir(target);
-    assert.deepEqual(files.sort(), [".agent-template.json", "CLAUDE.md"].sort());
+    assert.deepEqual(files.sort(), [".agent-template.json", "CLAUDE.md", "docs"].sort());
+
+    const allFiles = await listFiles(target);
+    assert.deepEqual(allFiles.sort(), [
+      ".agent-template.json",
+      "CLAUDE.md",
+      ...lightDocs,
+      "docs/specs/TEMPLATE.md",
+      "docs/ai-change-records/TEMPLATE.md",
+    ].sort());
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+test("generated validation rejects missing workflow artifacts", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-missing-workflow-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "spec-tdd",
+      dryRun: false,
+    });
+
+    await rm(path.join(target, "docs", "specs", "TEMPLATE.md"), { force: true });
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, false);
+    assert.ok(validation.errors.includes("missing docs/specs/TEMPLATE.md"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+async function listFiles(root, relativePrefix = "") {
+  const current = path.join(root, relativePrefix);
+  const entries = await readdir(current, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const relativePath = path.join(relativePrefix, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await listFiles(root, relativePath)));
+    } else {
+      files.push(relativePath.replaceAll(path.sep, "/"));
+    }
+  }
+
+  return files;
+}
