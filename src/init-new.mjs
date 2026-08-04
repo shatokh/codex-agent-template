@@ -3,16 +3,32 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  normalizeProjectKind,
+  projectKindLabel,
+  verificationGuidanceForProjectKind,
+  verificationRowsForProjectKind,
+} from "./project-kind.mjs";
+
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(moduleDir, "..");
 const templatesRoot = path.join(projectRoot, "templates", "base");
 
 const supportedPacks = ["privacy", "external-services", "security", "test-harness", "docs"];
 
-export async function initNew({ target, agent, workflow, packs = [], contextAdvisor = false, dryRun }) {
+export async function initNew({
+  target,
+  agent,
+  workflow,
+  packs = [],
+  contextAdvisor = false,
+  projectKind = "code",
+  dryRun,
+}) {
   const targetRoot = path.resolve(target);
   const projectName = path.basename(targetRoot);
   const normalizedPacks = normalizePacks(packs);
+  const normalizedProjectKind = normalizeProjectKind(projectKind);
   const plan = await buildFilePlan({
     targetRoot,
     projectName,
@@ -20,6 +36,7 @@ export async function initNew({ target, agent, workflow, packs = [], contextAdvi
     workflow,
     packs: normalizedPacks,
     contextAdvisor,
+    projectKind: normalizedProjectKind,
   });
   const blocked = [];
   const created = [];
@@ -44,6 +61,7 @@ export async function initNew({ target, agent, workflow, packs = [], contextAdvi
       target: targetRoot,
       agent,
       workflow,
+      projectKind: normalizedProjectKind,
       packs: normalizedPacks,
       contextAdvisor,
       dryRun,
@@ -67,6 +85,7 @@ export async function initNew({ target, agent, workflow, packs = [], contextAdvi
     target: targetRoot,
     agent,
     workflow,
+    projectKind: normalizedProjectKind,
     packs: normalizedPacks,
     contextAdvisor,
     dryRun,
@@ -78,15 +97,28 @@ export async function initNew({ target, agent, workflow, packs = [], contextAdvi
   };
 }
 
-async function buildFilePlan({ targetRoot, projectName, agent, workflow, packs, contextAdvisor }) {
+async function buildFilePlan({
+  targetRoot,
+  projectName,
+  agent,
+  workflow,
+  packs,
+  contextAdvisor,
+  projectKind,
+}) {
   const files = [];
   const context = {
     projectName,
     agent,
     workflow,
+    projectKind,
+    projectKindLabel: projectKindLabel(projectKind),
     packs: packs.join(", ") || "none",
     packsJson: JSON.stringify(packs),
     contextAdvisorJson: JSON.stringify(contextAdvisor),
+    projectKindJson: JSON.stringify(projectKind),
+    verificationTableRows: renderVerificationRows(projectKind),
+    verificationGuidance: verificationGuidanceForProjectKind(projectKind),
     generatedAt: new Date().toISOString().slice(0, 10),
   };
 
@@ -210,6 +242,12 @@ function normalizePacks(packs) {
     }
   }
   return unique;
+}
+
+function renderVerificationRows(projectKind) {
+  return verificationRowsForProjectKind(projectKind)
+    .map((row) => `| ${row[0]} | ${row[1]} | ${row[2]} |`)
+    .join("\n");
 }
 
 async function renderPlannedFile(targetRoot, relativePath, templateName, context) {

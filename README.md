@@ -23,6 +23,7 @@ The v1 target is deliberately narrow:
 node bin/codex-agent-template.mjs list
 node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light --dry-run
 node bin/codex-agent-template.mjs init-new --target C:\tmp\sample-project --agent codex+claude --workflow light --pack privacy --pack security --context-advisor
+node bin/codex-agent-template.mjs init-new --target C:\tmp\boardgame --agent codex --workflow task-first --project-kind boardgame --pack test-harness --context-advisor
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --pack test-harness --context-advisor --dry-run
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --check
 node bin/codex-agent-template.mjs onboard-existing --target C:\tmp\existing-project --agent codex --workflow task-first --dry-run --proposal-file C:\tmp\existing-project-proposal.md
@@ -36,6 +37,7 @@ node bin/codex-agent-template.mjs list --output json
 `onboard-existing --check` exits non-zero when the selected agent/workflow infrastructure is incomplete.
 `--proposal-file` writes the proposal markdown only when explicitly requested.
 `--proposal-dir` writes the proposal under `<dir>\<project-name>\...-onboarding-proposal.md`; `.local/` is gitignored and recommended for local review archives.
+Use `--project-kind code|docs|game-design|boardgame` to keep generated guidance and verification aligned with non-code repositories.
 Use `--output json` for machine-readable output from `list`, `init-new`, `onboard-existing`, and `validate`.
 Discovery currently checks common root config files, existing AI files, and package scripts.
 It reports detected project types, package manager, commands, and suggested verification order.
@@ -54,5 +56,6 @@ Generated workflow artifacts:
 See the implementation plan:
 
 - [Implementation Plan](docs/plans/implementation-plan.md)
+- [Manual Run Cookbook](docs/cookbooks/manual-run-cookbook.md)
 - [Context Artifact Advisor Design](docs/plans/context-artifact-advisor.md)
 - [Decision 0001: V1 Scope And Advisor Mode](docs/decisions/0001-v1-scope-and-advisor-mode.md)

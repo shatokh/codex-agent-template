@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import { supportedProjectKinds } from "./project-kind.mjs";
+
 const supportedAgents = ["codex", "claude", "codex+claude"];
 const supportedWorkflows = ["light", "task-first", "spec-tdd"];
 const supportedPacks = ["privacy", "external-services", "security", "test-harness", "docs"];
@@ -32,6 +34,10 @@ export async function validateGeneratedProject(target) {
   }
   if (!supportedWorkflows.includes(config.workflow)) {
     errors.push(`unsupported workflow in .agent-template.json: ${config.workflow}`);
+  }
+  const projectKind = config.projectKind || "code";
+  if (!supportedProjectKinds.includes(projectKind)) {
+    errors.push(`unsupported project kind in .agent-template.json: ${projectKind}`);
   }
   const packs = config.packs || [];
   if (!Array.isArray(packs)) {

@@ -57,6 +57,7 @@ export function discoverExisting(target) {
   const packageManager = detectPackageManager(targetRoot);
   const projectTypes = detectProjectTypes(targetRoot);
   const advisorArtifacts = detectAdvisorArtifacts(targetRoot);
+  const agentTemplate = readAgentTemplate(targetRoot);
   const commands = [];
 
   const packageJsonPath = path.join(targetRoot, "package.json");
@@ -90,9 +91,33 @@ export function discoverExisting(target) {
     packageManager,
     advisorStatus: detectAdvisorStatus(advisorArtifacts),
     advisorArtifacts: advisorArtifacts.map((artifact) => artifact.relativePath),
+    agentTemplate,
     commands,
     suggestedVerification: buildSuggestedVerification(commands),
   };
+}
+
+function readAgentTemplate(targetRoot) {
+  const configPath = path.join(targetRoot, ".agent-template.json");
+  if (!existsSync(configPath)) {
+    return { exists: false, valid: false, config: null, error: null };
+  }
+
+  try {
+    return {
+      exists: true,
+      valid: true,
+      config: JSON.parse(readFileSync(configPath, "utf8")),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      exists: true,
+      valid: false,
+      config: null,
+      error: error.message,
+    };
+  }
 }
 
 function detectAdvisorArtifacts(targetRoot) {

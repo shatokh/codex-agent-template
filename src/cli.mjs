@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { initNew } from "./init-new.mjs";
 import { onboardExisting } from "./onboard-existing.mjs";
+import { supportedProjectKinds } from "./project-kind.mjs";
 import { renderOnboardProposal } from "./render-onboard-proposal.mjs";
 import { validateGeneratedProject } from "./validate-generated-project.mjs";
 
@@ -23,6 +24,7 @@ export async function runCli(argv) {
     const result = {
       agents: agentModes,
       workflows,
+      projectKinds: supportedProjectKinds,
       packs,
     };
     if (options.output === "json") {
@@ -30,6 +32,7 @@ export async function runCli(argv) {
     } else {
       console.log("Agents: codex, claude, codex+claude");
       console.log("Workflows: light, task-first, spec-tdd");
+      console.log("Project kinds: code, docs, game-design, boardgame");
       console.log("Packs: privacy, external-services, security, test-harness, docs");
     }
     return;
@@ -40,6 +43,7 @@ export async function runCli(argv) {
       target: options.target || ".",
       agent: options.agent || "codex",
       workflow: options.workflow || "light",
+      projectKind: options["project-kind"] || "code",
       packs: options.pack || [],
       contextAdvisor: Boolean(options["context-advisor"]),
       dryRun: Boolean(options["dry-run"]),
@@ -64,6 +68,7 @@ export async function runCli(argv) {
       target: options.target || ".",
       agent: options.agent || "codex",
       workflow: options.workflow || "light",
+      projectKind: options["project-kind"] || "code",
       packs: options.pack || [],
       contextAdvisor: Boolean(options["context-advisor"]),
     });
@@ -142,6 +147,9 @@ function parseOptions(argv) {
   if (options.output && !["text", "json"].includes(options.output)) {
     throw new Error(`Unsupported --output value: ${options.output}`);
   }
+  if (options["project-kind"] && !supportedProjectKinds.includes(options["project-kind"])) {
+    throw new Error(`Unsupported --project-kind value: ${options["project-kind"]}`);
+  }
   if (options.pack) {
     for (const pack of options.pack) {
       if (!packs.includes(pack)) {
@@ -154,10 +162,17 @@ function parseOptions(argv) {
 }
 
 function printInitResult(result) {
-  console.log(result.dryRun ? "Dry run: no files written." : "Init-new completed.");
+  if (result.dryRun) {
+    console.log("Dry run: no files written.");
+  } else if (result.blocked.length > 0 || result.errors.length > 0) {
+    console.log("Init-new blocked: no files written.");
+  } else {
+    console.log("Init-new completed.");
+  }
   console.log(`Target: ${result.target}`);
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
+  console.log(`Project kind: ${result.projectKind}`);
   console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
   console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
 
@@ -191,8 +206,8 @@ function printHelp() {
   console.log(`codex-agent-template
 
 Commands:
-  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
+  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);
@@ -230,6 +245,7 @@ function printOnboardResult(result) {
   console.log(`Target: ${result.target}`);
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
+  console.log(`Project kind: ${result.projectKind}`);
   console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
   console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
 
@@ -277,6 +293,15 @@ function printOnboardResult(result) {
 
   console.log("Blocked existing files:");
   printList(result.blockedExisting);
+
+  console.log("Configuration issues:");
+  if (result.configurationIssues.length === 0) {
+    console.log("- none");
+  } else {
+    for (const issue of result.configurationIssues) {
+      console.log(`- ${issue.path}: expected ${issue.expected}; actual ${issue.actual}`);
+    }
+  }
 
   console.log("Recommendations:");
   printList(result.recommendations);

@@ -93,14 +93,17 @@ test("onboard-existing proposes files without writing", async () => {
       target: tempRoot,
       agent: "codex+claude",
       workflow: "task-first",
+      projectKind: "boardgame",
     });
 
+    assert.equal(result.projectKind, "boardgame");
     assert.ok(result.blockedExisting.includes("AGENTS.md"));
     assert.ok(result.proposedCreates.includes(".gitignore"));
     assert.ok(result.proposedCreates.includes("CLAUDE.md"));
     assert.ok(result.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
     assert.equal(result.complete, false);
-    assert.ok(result.verificationDraft.some((row) => row.check === "Unit tests"));
+    assert.ok(result.verificationDraft.some((row) => row.check === "Playtest checklist"));
+    assert.equal(result.verificationDraft.some((row) => row.check === "Unit tests"), false);
 
     const files = await readdir(tempRoot);
     assert.deepEqual(files, ["AGENTS.md"]);
@@ -178,6 +181,7 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
     target: "C:/tmp/sample",
     agent: "codex",
     workflow: "task-first",
+    projectKind: "boardgame",
     packs: [],
     discovery: {
       existingAiFiles: ["AGENTS.md"],
@@ -208,6 +212,7 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
   const markdown = renderOnboardProposal(result);
 
   assert.match(markdown, /# Onboard Existing Proposal/);
+  assert.match(markdown, /Project kind: `boardgame`/);
   assert.match(markdown, /Packs: `none`/);
   assert.match(markdown, /Context advisor: `disabled`/);
   assert.match(markdown, /Complete: `no`/);
@@ -274,6 +279,46 @@ test("CLI onboard-existing --check exits zero when selected infrastructure is co
     ]);
 
     assert.match(result.stdout, /Complete: yes/);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI onboard-existing --check detects generated metadata mismatch", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-check-mismatch-"));
+  const target = path.join(tempRoot, "generated-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "task-first",
+      projectKind: "code",
+      dryRun: false,
+    });
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [
+        cliPath,
+        "onboard-existing",
+        "--target",
+        target,
+        "--agent",
+        "codex",
+        "--workflow",
+        "task-first",
+        "--project-kind",
+        "boardgame",
+        "--check",
+      ]),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stdout, /Configuration issues/);
+        assert.match(error.stdout, /expected projectKind=boardgame; actual projectKind=code/);
+        assert.match(error.stdout, /Complete: no/);
+        return true;
+      }
+    );
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

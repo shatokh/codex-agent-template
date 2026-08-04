@@ -79,6 +79,41 @@ test("init-new writes codex+claude files and generated validation passes", async
   }
 });
 
+test("init-new writes boardgame-oriented metadata and verification", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-boardgame-"));
+  const target = path.join(tempRoot, "sample-boardgame");
+
+  try {
+    const result = await initNew({
+      target,
+      agent: "codex",
+      workflow: "task-first",
+      projectKind: "boardgame",
+      dryRun: false,
+    });
+
+    assert.equal(result.projectKind, "boardgame");
+
+    const config = JSON.parse(await readFile(path.join(target, ".agent-template.json"), "utf8"));
+    assert.equal(config.projectKind, "boardgame");
+
+    const agents = await readFile(path.join(target, "AGENTS.md"), "utf8");
+    assert.match(agents, /Board game design project/);
+    assert.match(agents, /content, rules, assets/);
+
+    const verification = await readFile(path.join(target, "docs", "ai", "verification.md"), "utf8");
+    assert.match(verification, /Project kind: `boardgame`/);
+    assert.match(verification, /Playtest checklist/);
+    assert.match(verification, /Component and card inventory review/);
+    assert.doesNotMatch(verification, /Unit tests/);
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, true, validation.errors.join("\n"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("init-new blocks existing files by default", async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-block-"));
   const target = path.join(tempRoot, "sample-project");
@@ -100,6 +135,41 @@ test("init-new blocks existing files by default", async () => {
 
     assert.deepEqual(second.blocked.sort(), [".agent-template.json", ".gitignore", "AGENTS.md", ...lightDocs].sort());
     assert.deepEqual(second.written, []);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI init-new reports blocked files without completed wording", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-cli-block-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      dryRun: false,
+    });
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [
+        cliPath,
+        "init-new",
+        "--target",
+        target,
+        "--agent",
+        "codex",
+        "--workflow",
+        "light",
+      ]),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stdout, /Init-new blocked: no files written/);
+        assert.doesNotMatch(error.stdout, /Init-new completed/);
+        return true;
+      }
+    );
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

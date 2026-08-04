@@ -267,6 +267,8 @@ codex-agent-template list
 - discovery for manual context advisor and mature session advisor artifacts;
 - copy-ready verification draft in `onboard-existing` output;
 - local markdown proposal archive export through `--proposal-dir`;
+- explicit project kind support through `--project-kind code|docs|game-design|boardgame`;
+- boardgame/game-design/docs verification profiles that avoid fake software test commands;
 - workflow-specific rule content for `task-first` and `spec-tdd`;
 - manual-mode `context-artifact-advisor` generation through `--context-advisor`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.

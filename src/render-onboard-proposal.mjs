@@ -4,6 +4,7 @@ export function renderOnboardProposal(result) {
 Target: \`${result.target}\`
 Agent: \`${result.agent}\`
 Workflow: \`${result.workflow}\`
+Project kind: \`${result.projectKind || "code"}\`
 Packs: \`${result.packs.length === 0 ? "none" : result.packs.join(", ")}\`
 Context advisor: \`${result.contextAdvisor ? "manual" : "disabled"}\`
 Complete: \`${result.complete ? "yes" : "no"}\`
@@ -53,6 +54,10 @@ ${renderList(result.proposedCreates)}
 ## Blocked Existing Files
 
 ${renderList(result.blockedExisting)}
+
+## Configuration Issues
+
+${renderConfigurationIssues(result.configurationIssues || [])}
 
 ## Recommendations
 
@@ -105,6 +110,16 @@ function renderFindings(findings) {
     })
     .filter(Boolean)
     .join("\n\n");
+}
+
+function renderConfigurationIssues(configurationIssues) {
+  if (configurationIssues.length === 0) {
+    return "- none";
+  }
+
+  return configurationIssues
+    .map((issue) => `- \`${issue.path}\`: expected ${issue.expected}; actual ${issue.actual}`)
+    .join("\n");
 }
 
 function renderVerificationDraft(rows) {

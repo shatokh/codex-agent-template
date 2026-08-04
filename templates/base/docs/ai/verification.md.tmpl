@@ -5,6 +5,7 @@ Project: `{{projectName}}`
 ## Current Level
 
 Workflow: `{{workflow}}`
+Project kind: `{{projectKind}}`
 
 ## Commands
 
@@ -12,16 +13,6 @@ Fill this table during discovery.
 
 | Check | Command | Status |
 | --- | --- | --- |
-| Bootstrap | Not configured | Unknown |
-| Format | Not configured | Unknown |
-| Lint | Not configured | Unknown |
-| Static analysis / typecheck | Not configured | Unknown |
-| Unit tests | Not configured | Unknown |
-| Integration tests | Not configured | Unknown |
-| E2E / smoke | Not configured | Unknown |
-| Build/package | Not configured | Unknown |
-| Security/dependency check | Not configured | Unknown |
-| Docs validation | Not configured | Unknown |
+{{verificationTableRows}}
 
-For simple projects, keep only checks that actually exist and leave unavailable checks explicit.
-
+{{verificationGuidance}}

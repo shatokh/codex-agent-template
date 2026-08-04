@@ -1,15 +1,33 @@
 import { initNew } from "./init-new.mjs";
 import { discoverExisting } from "./discover-existing.mjs";
+import { normalizeProjectKind } from "./project-kind.mjs";
 
-export async function onboardExisting({ target, agent, workflow, packs = [], contextAdvisor = false }) {
+export async function onboardExisting({
+  target,
+  agent,
+  workflow,
+  packs = [],
+  contextAdvisor = false,
+  projectKind = "code",
+}) {
   const discovery = discoverExisting(target);
+  const normalizedProjectKind = normalizeProjectKind(projectKind);
   const plan = await initNew({
     target: discovery.target,
     agent,
     workflow,
+    projectKind: normalizedProjectKind,
     packs,
     contextAdvisor,
     dryRun: true,
+  });
+  const configurationIssues = buildConfigurationIssues({
+    discovery,
+    agent,
+    workflow,
+    packs,
+    contextAdvisor,
+    projectKind: normalizedProjectKind,
   });
   const findings = buildFindings({ plan, discovery });
 
@@ -17,20 +35,22 @@ export async function onboardExisting({ target, agent, workflow, packs = [], con
     target: discovery.target,
     agent,
     workflow,
+    projectKind: normalizedProjectKind,
     packs,
     contextAdvisor,
     discovery,
     proposedCreates: plan.created,
     blockedExisting: plan.blocked,
-    complete: plan.created.length === 0,
-    recommendations: buildRecommendations({ plan, discovery }),
-    findings,
-    verificationDraft: buildVerificationDraft(discovery),
+    configurationIssues,
+    complete: plan.created.length === 0 && configurationIssues.length === 0,
+    recommendations: buildRecommendations({ plan, discovery, configurationIssues }),
+    findings: [...findings, ...configurationIssuesToFindings(configurationIssues)],
+    verificationDraft: buildVerificationDraft(discovery, normalizedProjectKind),
   };
 }
 
-function buildRecommendations({ plan, discovery }) {
-  if (plan.created.length === 0) {
+function buildRecommendations({ plan, discovery, configurationIssues }) {
+  if (plan.created.length === 0 && configurationIssues.length === 0) {
     return ["No generation needed for the selected agent/workflow/packs."];
   }
 
@@ -46,6 +66,10 @@ function buildRecommendations({ plan, discovery }) {
     recommendations.push("Review detected commands and fill docs/ai/verification.md after generation.");
   }
 
+  if (configurationIssues.length > 0) {
+    recommendations.push("Manual metadata/content update needed for existing generated files.");
+  }
+
   if (
     plan.created.includes(".agents/skills/context-artifact-advisor/SKILL.md") &&
     ["session-artifact-advisor", "mixed"].includes(discovery.advisorStatus)
@@ -54,6 +78,65 @@ function buildRecommendations({ plan, discovery }) {
   }
 
   return recommendations;
+}
+
+function buildConfigurationIssues({
+  discovery,
+  agent,
+  workflow,
+  packs,
+  contextAdvisor,
+  projectKind,
+}) {
+  if (!discovery.agentTemplate.exists) {
+    return [];
+  }
+
+  if (!discovery.agentTemplate.valid) {
+    return [
+      {
+        path: ".agent-template.json",
+        expected: "valid JSON",
+        actual: discovery.agentTemplate.error || "invalid JSON",
+      },
+    ];
+  }
+
+  const config = discovery.agentTemplate.config || {};
+  const issues = [];
+  compareMetadata(issues, "agent", agent, config.agent);
+  compareMetadata(issues, "workflow", workflow, config.workflow);
+  compareMetadata(issues, "projectKind", projectKind, config.projectKind || "code");
+  compareMetadata(issues, "contextAdvisor", contextAdvisor, config.contextAdvisor);
+
+  const actualPacks = Array.isArray(config.packs) ? config.packs : [];
+  if (JSON.stringify([...packs].sort()) !== JSON.stringify([...actualPacks].sort())) {
+    issues.push({
+      path: ".agent-template.json",
+      expected: `packs=${packs.join(", ") || "none"}`,
+      actual: `packs=${actualPacks.join(", ") || "none"}`,
+    });
+  }
+
+  return issues;
+}
+
+function compareMetadata(issues, field, expected, actual) {
+  if (expected !== actual) {
+    issues.push({
+      path: ".agent-template.json",
+      expected: `${field}=${expected}`,
+      actual: `${field}=${actual}`,
+    });
+  }
+}
+
+function configurationIssuesToFindings(configurationIssues) {
+  return configurationIssues.map((issue) => ({
+    severity: "medium",
+    title: "Generated metadata mismatch",
+    detail: `${issue.path} has ${issue.actual}; expected ${issue.expected}.`,
+  }));
 }
 
 function buildFindings({ plan, discovery }) {
@@ -114,7 +197,39 @@ function buildFindings({ plan, discovery }) {
   return findings;
 }
 
-function buildVerificationDraft(discovery) {
+function buildVerificationDraft(discovery, projectKind) {
+  if (projectKind === "boardgame") {
+    return [
+      { check: "Rules consistency review", command: "Manual review", confidence: "manual" },
+      { check: "Component and card inventory review", command: "Manual review", confidence: "manual" },
+      { check: "Playtest checklist", command: "Manual playtest", confidence: "manual" },
+      { check: "Balance review", command: "Manual review", confidence: "manual" },
+      { check: "Print/export check", command: "Not configured", confidence: "unknown" },
+      { check: "Docs and decision log review", command: "Manual review", confidence: "manual" },
+    ];
+  }
+
+  if (projectKind === "game-design") {
+    return [
+      { check: "Design consistency review", command: "Manual review", confidence: "manual" },
+      { check: "Content inventory review", command: "Manual review", confidence: "manual" },
+      { check: "Prototype smoke / playtest", command: "Manual playtest", confidence: "manual" },
+      { check: "Balance or tuning review", command: "Manual review", confidence: "manual" },
+      { check: "Asset/export check", command: "Not configured", confidence: "unknown" },
+      { check: "Docs and decision log review", command: "Manual review", confidence: "manual" },
+    ];
+  }
+
+  if (projectKind === "docs") {
+    return [
+      { check: "Structure review", command: "Manual review", confidence: "manual" },
+      { check: "Link/reference check", command: "Not configured", confidence: "unknown" },
+      { check: "Terminology consistency review", command: "Manual review", confidence: "manual" },
+      { check: "Publication/export check", command: "Not configured", confidence: "unknown" },
+      { check: "Docs change log review", command: "Manual review", confidence: "manual" },
+    ];
+  }
+
   const rows = [];
   const suggestedByKind = new Map(
     discovery.suggestedVerification.map((command) => [command.kind, command])

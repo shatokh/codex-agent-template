@@ -17,6 +17,7 @@ test("CLI list supports JSON output", async () => {
 
   assert.deepEqual(parsed.agents, ["codex", "claude", "codex+claude"]);
   assert.deepEqual(parsed.workflows, ["light", "task-first", "spec-tdd"]);
+  assert.deepEqual(parsed.projectKinds, ["code", "docs", "game-design", "boardgame"]);
   assert.deepEqual(parsed.packs, ["privacy", "external-services", "security", "test-harness", "docs"]);
 });
 
@@ -42,6 +43,7 @@ test("CLI init-new dry-run supports JSON output", async () => {
 
     assert.equal(parsed.dryRun, true);
     assert.equal(parsed.agent, "codex");
+    assert.equal(parsed.projectKind, "code");
     assert.ok(parsed.created.includes("AGENTS.md"));
     assert.ok(parsed.created.includes(".gitignore"));
   } finally {
@@ -91,6 +93,8 @@ test("CLI onboard-existing supports JSON output", async () => {
       "codex+claude",
       "--workflow",
       "task-first",
+      "--project-kind",
+      "boardgame",
       "--pack",
       "privacy",
       "--pack",
@@ -103,10 +107,12 @@ test("CLI onboard-existing supports JSON output", async () => {
     const parsed = JSON.parse(result.stdout);
 
     assert.equal(parsed.agent, "codex+claude");
+    assert.equal(parsed.projectKind, "boardgame");
     assert.deepEqual(parsed.packs, ["privacy", "security"]);
     assert.equal(parsed.contextAdvisor, true);
     assert.equal(parsed.complete, false);
-    assert.ok(parsed.verificationDraft.some((row) => row.check === "Unit tests"));
+    assert.ok(parsed.verificationDraft.some((row) => row.check === "Playtest checklist"));
+    assert.equal(parsed.verificationDraft.some((row) => row.check === "Unit tests"), false);
     assert.ok(parsed.proposedCreates.includes("AGENTS.md"));
     assert.ok(parsed.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
     assert.ok(parsed.proposedCreates.includes("docs/ai/packs/privacy.md"));
