@@ -234,13 +234,13 @@ function buildFindings({ plan, discovery, selectedProjectKind }) {
 }
 
 function buildVerificationDraft(discovery, projectKind) {
-  if (projectKind === "boardgame") {
+  if (projectKind === "no-code") {
     return [
-      { check: "Rules consistency review", command: "Manual review", confidence: "manual" },
-      { check: "Component and card inventory review", command: "Manual review", confidence: "manual" },
-      { check: "Playtest checklist", command: "Manual playtest", confidence: "manual" },
-      { check: "Balance review", command: "Manual review", confidence: "manual" },
-      { check: "Print/export check", command: "Not configured", confidence: "unknown" },
+      { check: "Core rules or workflow review", command: "Manual review", confidence: "manual" },
+      { check: "Content and asset inventory review", command: "Manual review", confidence: "manual" },
+      { check: "Scenario/prototype walkthrough", command: "Manual review", confidence: "manual" },
+      { check: "Consistency and edge-case review", command: "Manual review", confidence: "manual" },
+      { check: "Export/publishing check", command: "Not configured", confidence: "unknown" },
       { check: "Docs and decision log review", command: "Manual review", confidence: "manual" },
     ];
   }

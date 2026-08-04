@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { initNew } from "./init-new.mjs";
 import { onboardExisting } from "./onboard-existing.mjs";
-import { supportedProjectKinds } from "./project-kind.mjs";
+import { acceptedProjectKinds, supportedProjectKinds } from "./project-kind.mjs";
 import { renderOnboardProposal } from "./render-onboard-proposal.mjs";
 import { renderUpdateProposal } from "./render-update-proposal.mjs";
 import { updateExisting } from "./update-existing.mjs";
@@ -34,7 +34,7 @@ export async function runCli(argv) {
     } else {
       console.log("Agents: codex, claude, codex+claude");
       console.log("Workflows: light, task-first, spec-tdd");
-      console.log("Project kinds: code, docs, game-design, boardgame");
+      console.log("Project kinds: code, docs, game-design, no-code");
       console.log("Packs: privacy, external-services, security, test-harness, docs");
     }
     return;
@@ -186,7 +186,7 @@ function parseOptions(argv) {
   if (options.output && !["text", "json"].includes(options.output)) {
     throw new Error(`Unsupported --output value: ${options.output}`);
   }
-  if (options["project-kind"] && !supportedProjectKinds.includes(options["project-kind"])) {
+  if (options["project-kind"] && !acceptedProjectKinds.includes(options["project-kind"])) {
     throw new Error(`Unsupported --project-kind value: ${options["project-kind"]}`);
   }
   if (options.pack) {
@@ -245,9 +245,9 @@ function printHelp() {
   console.log(`codex-agent-template
 
 Commands:
-  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
-  update-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|boardgame] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
+  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
+  update-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);

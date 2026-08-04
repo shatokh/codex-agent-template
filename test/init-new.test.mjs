@@ -79,36 +79,58 @@ test("init-new writes codex+claude files and generated validation passes", async
   }
 });
 
-test("init-new writes boardgame-oriented metadata and verification", async () => {
-  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-boardgame-"));
-  const target = path.join(tempRoot, "sample-boardgame");
+test("init-new writes no-code-oriented metadata and verification", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-no-code-"));
+  const target = path.join(tempRoot, "sample-no-code");
 
   try {
     const result = await initNew({
       target,
       agent: "codex",
       workflow: "task-first",
-      projectKind: "boardgame",
+      projectKind: "no-code",
       dryRun: false,
     });
 
-    assert.equal(result.projectKind, "boardgame");
+    assert.equal(result.projectKind, "no-code");
 
     const config = JSON.parse(await readFile(path.join(target, ".agent-template.json"), "utf8"));
-    assert.equal(config.projectKind, "boardgame");
+    assert.equal(config.projectKind, "no-code");
 
     const agents = await readFile(path.join(target, "AGENTS.md"), "utf8");
-    assert.match(agents, /Board game design project/);
+    assert.match(agents, /No-code project/);
     assert.match(agents, /content, rules, assets/);
 
     const verification = await readFile(path.join(target, "docs", "ai", "verification.md"), "utf8");
-    assert.match(verification, /Project kind: `boardgame`/);
-    assert.match(verification, /Playtest checklist/);
-    assert.match(verification, /Component and card inventory review/);
+    assert.match(verification, /Project kind: `no-code`/);
+    assert.match(verification, /Scenario\/prototype walkthrough/);
+    assert.match(verification, /Content and asset inventory review/);
     assert.doesNotMatch(verification, /Unit tests/);
 
     const validation = await validateGeneratedProject(target);
     assert.equal(validation.valid, true, validation.errors.join("\n"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("init-new accepts legacy boardgame project kind as no-code", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-boardgame-alias-"));
+  const target = path.join(tempRoot, "sample-boardgame");
+
+  try {
+    const result = await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      projectKind: "boardgame",
+      dryRun: false,
+    });
+
+    assert.equal(result.projectKind, "no-code");
+
+    const config = JSON.parse(await readFile(path.join(target, ".agent-template.json"), "utf8"));
+    assert.equal(config.projectKind, "no-code");
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

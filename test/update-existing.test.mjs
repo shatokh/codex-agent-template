@@ -22,7 +22,7 @@ test("update-existing reports complete when generated files match", async () => 
       target,
       agent: "codex",
       workflow: "task-first",
-      projectKind: "boardgame",
+      projectKind: "no-code",
       packs: ["test-harness"],
       contextAdvisor: true,
       dryRun: false,
@@ -32,7 +32,7 @@ test("update-existing reports complete when generated files match", async () => 
       target,
       agent: "codex",
       workflow: "task-first",
-      projectKind: "boardgame",
+      projectKind: "no-code",
       packs: ["test-harness"],
       contextAdvisor: true,
     });
@@ -66,7 +66,7 @@ test("update-existing proposes review updates for changed project kind", async (
       target,
       agent: "codex",
       workflow: "task-first",
-      projectKind: "boardgame",
+      projectKind: "no-code",
       packs: ["test-harness"],
       contextAdvisor: true,
     });
@@ -87,7 +87,7 @@ test("render-update-proposal creates reviewable markdown", async () => {
     target: "C:/tmp/sample",
     agent: "codex",
     workflow: "task-first",
-    projectKind: "boardgame",
+    projectKind: "no-code",
     packs: ["test-harness"],
     contextAdvisor: true,
     complete: false,
@@ -108,7 +108,7 @@ test("render-update-proposal creates reviewable markdown", async () => {
   });
 
   assert.match(markdown, /# Update Existing Proposal/);
-  assert.match(markdown, /Project kind: `boardgame`/);
+  assert.match(markdown, /Project kind: `no-code`/);
   assert.match(markdown, /## Existing Files To Review For Update/);
   assert.match(markdown, /`docs\/ai\/verification\.md`/);
 });
@@ -135,7 +135,7 @@ test("CLI update-existing supports JSON output", async () => {
       "--workflow",
       "task-first",
       "--project-kind",
-      "boardgame",
+      "no-code",
       "--output",
       "json",
     ]);

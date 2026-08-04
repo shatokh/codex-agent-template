@@ -50,7 +50,7 @@ const projectFiles = [
 
 const nonCodeProjectKindEvidence = [
   {
-    kind: "boardgame",
+    kind: "no-code",
     confidence: "high",
     files: [
       "docs/CARD_TYPES.md",

@@ -1,10 +1,18 @@
-export const supportedProjectKinds = ["code", "docs", "game-design", "boardgame"];
+export const supportedProjectKinds = ["code", "docs", "game-design", "no-code"];
+export const legacyProjectKindAliases = {
+  boardgame: "no-code",
+};
+export const acceptedProjectKinds = [
+  ...supportedProjectKinds,
+  ...Object.keys(legacyProjectKindAliases),
+];
 
 export function normalizeProjectKind(projectKind = "code") {
-  if (!supportedProjectKinds.includes(projectKind)) {
+  const normalized = legacyProjectKindAliases[projectKind] || projectKind;
+  if (!supportedProjectKinds.includes(normalized)) {
     throw new Error(`Unsupported project kind: ${projectKind}`);
   }
-  return projectKind;
+  return normalized;
 }
 
 export function projectKindLabel(projectKind) {
@@ -12,19 +20,19 @@ export function projectKindLabel(projectKind) {
     code: "Code project",
     docs: "Documentation project",
     "game-design": "Game design project",
-    boardgame: "Board game design project",
+    "no-code": "No-code project",
   };
   return labels[projectKind] || labels.code;
 }
 
 export function verificationRowsForProjectKind(projectKind) {
-  if (projectKind === "boardgame") {
+  if (projectKind === "no-code") {
     return [
-      ["Rules consistency review", "Manual review", "Not configured"],
-      ["Component and card inventory review", "Manual review", "Not configured"],
-      ["Playtest checklist", "Manual playtest", "Not configured"],
-      ["Balance review", "Manual review", "Not configured"],
-      ["Print/export check", "Not configured", "Unknown"],
+      ["Core rules or workflow review", "Manual review", "Not configured"],
+      ["Content and asset inventory review", "Manual review", "Not configured"],
+      ["Scenario/prototype walkthrough", "Manual review", "Not configured"],
+      ["Consistency and edge-case review", "Manual review", "Not configured"],
+      ["Export/publishing check", "Not configured", "Unknown"],
       ["Docs and decision log review", "Manual review", "Not configured"],
     ];
   }
@@ -65,8 +73,8 @@ export function verificationRowsForProjectKind(projectKind) {
 }
 
 export function verificationGuidanceForProjectKind(projectKind) {
-  if (projectKind === "boardgame") {
-    return "For board game projects, prefer concrete review and playtest evidence over placeholder software commands.";
+  if (projectKind === "no-code") {
+    return "For no-code projects, prefer concrete review, walkthrough, inventory, and publishing evidence over placeholder software commands.";
   }
 
   if (projectKind === "game-design") {

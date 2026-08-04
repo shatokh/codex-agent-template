@@ -38,25 +38,25 @@ node bin\codex-agent-template.mjs validate --target C:\Users\User\StudioProjects
 node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\my-code-project --agent codex --workflow task-first --project-kind code --pack test-harness --check
 ```
 
-## Новый Board Game Project
+## Новый No-Code Project
 
 Dry-run:
 
 ```powershell
-node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-boardgame --agent codex --workflow task-first --project-kind boardgame --pack test-harness --context-advisor --dry-run
+node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-no-code-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --dry-run
 ```
 
 Реальная генерация:
 
 ```powershell
-node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-boardgame --agent codex --workflow task-first --project-kind boardgame --pack test-harness --context-advisor
+node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-no-code-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor
 ```
 
 Проверка результата:
 
 ```powershell
-node bin\codex-agent-template.mjs validate --target C:\Users\User\StudioProjects\my-boardgame
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\my-boardgame --agent codex --workflow task-first --project-kind boardgame --pack test-harness --context-advisor --check
+node bin\codex-agent-template.mjs validate --target C:\Users\User\StudioProjects\my-no-code-project
+node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\my-no-code-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --check
 ```
 
 ## Existing Repo Proposal
@@ -69,10 +69,10 @@ Code repo:
 node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\existing-code-repo --agent codex --workflow task-first --project-kind code --pack test-harness --context-advisor --dry-run --proposal-dir .local\proposals
 ```
 
-Board game repo:
+No-code repo:
 
 ```powershell
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\thornwake\thornwake-boardgame --agent codex --workflow task-first --project-kind boardgame --pack test-harness --context-advisor --dry-run --proposal-dir .local\proposals
+node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\thornwake\thornwake-boardgame --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --dry-run --proposal-dir .local\proposals
 ```
 
 QAGym-style mature repo:
@@ -111,7 +111,7 @@ node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\Studio
 Если AI-инфраструктура уже создана, но template изменился, сначала запускай update review без записи:
 
 ```powershell
-node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioProjects\existing-repo --agent codex --workflow task-first --project-kind boardgame --pack test-harness --context-advisor --proposal-dir .local\proposals
+node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioProjects\existing-repo --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --proposal-dir .local\proposals
 ```
 
 Команда покажет:
@@ -132,10 +132,10 @@ node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioP
 code         обычный software project
 docs         документационный проект
 game-design  дизайн игры, прототип, narrative/design docs
-boardgame    настолка: правила, карты, компоненты, баланс, playtests
+no-code      проект без software runtime: правила, контент, ассеты, research, настолка, операционные docs
 ```
 
-Для `boardgame` verification не будет притворяться software test matrix. Вместо этого будут checks для правил, компонентов, playtest, баланса, print/export и decision log.
+Для `no-code` verification не будет притворяться software test matrix. Вместо этого будут checks для правил/workflow, контента/ассетов, walkthrough, consistency, export/publishing и decision log.
 
 ## Agent Mode
 
@@ -186,7 +186,7 @@ Copy-paste prompt для запуска через Codex-агента:
 Параметры:
 - agent: codex
 - workflow: task-first
-- project-kind: <code|docs|game-design|boardgame>
+- project-kind: <code|docs|game-design|no-code>
 - packs: <укажи нужные packs>
 - context-advisor: <да/нет>
 
