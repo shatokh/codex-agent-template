@@ -96,6 +96,13 @@ export async function validateGeneratedProject(target) {
     }
   }
 
+  if (config.contextAdvisor === true) {
+    requireFile(targetRoot, ".agents/skills/context-artifact-advisor/SKILL.md", errors);
+    requireFile(targetRoot, "docs/ai/advisor/artifact-selection.md", errors);
+    requireFile(targetRoot, "docs/ai/advisor/proposal-schema.md", errors);
+    requireFile(targetRoot, "docs/ai/advisor/proposals/index.md", errors);
+  }
+
   return {
     valid: errors.length === 0,
     errors,

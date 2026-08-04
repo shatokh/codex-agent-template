@@ -1,0 +1,21 @@
+# Artifact Selection
+
+Use the smallest durable artifact that solves the recurring problem.
+
+## Surfaces
+
+- Root rule: short always-on instruction needed in most sessions.
+- Skill: multi-step workflow that should be invoked explicitly.
+- Docs/runbook: longer reference or setup details.
+- Validator script: deterministic check better enforced by code.
+- Hook backlog item: timing-sensitive automation that is not safe for manual memory.
+- Agent/orchestrator backlog item: specialized context-heavy review that should be isolated.
+- Plugin backlog item: reusable capability across many repositories.
+
+## Rules
+
+- Do not promote one-off preferences into durable artifacts unless the risk is high.
+- Prefer docs or skills over root rules when the instruction is long or rare.
+- Prefer scripts over prose when the check is deterministic.
+- Keep capture-mode proposals in backlog only; manual mode is the current allowed scope.
+

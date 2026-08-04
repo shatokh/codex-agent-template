@@ -5,6 +5,7 @@ Target: \`${result.target}\`
 Agent: \`${result.agent}\`
 Workflow: \`${result.workflow}\`
 Packs: \`${result.packs.length === 0 ? "none" : result.packs.join(", ")}\`
+Context advisor: \`${result.contextAdvisor ? "manual" : "disabled"}\`
 Complete: \`${result.complete ? "yes" : "no"}\`
 
 No target files were written by this proposal.

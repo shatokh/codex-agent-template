@@ -115,6 +115,7 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
     },
     proposedCreates: ["docs/tasks/TEMPLATE.md"],
     blockedExisting: ["AGENTS.md"],
+    contextAdvisor: false,
     recommendations: ["Manual merge review needed for existing files before generation."],
     findings: [
       {
@@ -129,6 +130,7 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
 
   assert.match(markdown, /# Onboard Existing Proposal/);
   assert.match(markdown, /Packs: `none`/);
+  assert.match(markdown, /Context advisor: `disabled`/);
   assert.match(markdown, /Complete: `no`/);
   assert.match(markdown, /`AGENTS\.md`/);
   assert.match(markdown, /unit-test: `npm run test` \(high\)/);
@@ -187,6 +189,33 @@ test("CLI onboard-existing --check exits zero when selected infrastructure is co
     ]);
 
     assert.match(result.stdout, /Complete: yes/);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("CLI onboard-existing proposes manual context advisor artifacts", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-onboard-advisor-"));
+
+  try {
+    const result = await execFileAsync(process.execPath, [
+      cliPath,
+      "onboard-existing",
+      "--target",
+      tempRoot,
+      "--agent",
+      "codex",
+      "--workflow",
+      "light",
+      "--context-advisor",
+      "--output",
+      "json",
+    ]);
+    const parsed = JSON.parse(result.stdout);
+
+    assert.equal(parsed.contextAdvisor, true);
+    assert.ok(parsed.proposedCreates.includes(".agents/skills/context-artifact-advisor/SKILL.md"));
+    assert.ok(parsed.proposedCreates.includes("docs/ai/advisor/proposals/index.md"));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

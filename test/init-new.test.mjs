@@ -169,6 +169,35 @@ test("init-new writes selected optional packs", async () => {
   }
 });
 
+test("init-new writes manual context advisor artifacts when requested", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-advisor-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    const result = await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      contextAdvisor: true,
+      dryRun: false,
+    });
+
+    assert.equal(result.contextAdvisor, true);
+    assert.ok(result.written.includes(".agents/skills/context-artifact-advisor/SKILL.md"));
+    assert.ok(result.written.includes("docs/ai/advisor/artifact-selection.md"));
+    assert.ok(result.written.includes("docs/ai/advisor/proposal-schema.md"));
+    assert.ok(result.written.includes("docs/ai/advisor/proposals/index.md"));
+
+    const config = JSON.parse(await readFile(path.join(target, ".agent-template.json"), "utf8"));
+    assert.equal(config.contextAdvisor, true);
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, true, validation.errors.join("\n"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("generated validation rejects missing local override ignore rules", async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-missing-gitignore-"));
   const target = path.join(tempRoot, "sample-project");
@@ -231,6 +260,29 @@ test("generated validation rejects missing optional pack artifacts", async () =>
     const validation = await validateGeneratedProject(target);
     assert.equal(validation.valid, false);
     assert.ok(validation.errors.includes("missing docs/ai/packs/privacy.md"));
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("generated validation rejects missing context advisor artifacts", async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), "cat-missing-advisor-"));
+  const target = path.join(tempRoot, "sample-project");
+
+  try {
+    await initNew({
+      target,
+      agent: "codex",
+      workflow: "light",
+      contextAdvisor: true,
+      dryRun: false,
+    });
+
+    await rm(path.join(target, "docs", "ai", "advisor", "proposal-schema.md"), { force: true });
+
+    const validation = await validateGeneratedProject(target);
+    assert.equal(validation.valid, false);
+    assert.ok(validation.errors.includes("missing docs/ai/advisor/proposal-schema.md"));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

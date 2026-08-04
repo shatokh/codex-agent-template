@@ -9,11 +9,18 @@ const templatesRoot = path.join(projectRoot, "templates", "base");
 
 const supportedPacks = ["privacy", "external-services", "security", "test-harness", "docs"];
 
-export async function initNew({ target, agent, workflow, packs = [], dryRun }) {
+export async function initNew({ target, agent, workflow, packs = [], contextAdvisor = false, dryRun }) {
   const targetRoot = path.resolve(target);
   const projectName = path.basename(targetRoot);
   const normalizedPacks = normalizePacks(packs);
-  const plan = await buildFilePlan({ targetRoot, projectName, agent, workflow, packs: normalizedPacks });
+  const plan = await buildFilePlan({
+    targetRoot,
+    projectName,
+    agent,
+    workflow,
+    packs: normalizedPacks,
+    contextAdvisor,
+  });
   const blocked = [];
   const created = [];
   const written = [];
@@ -38,6 +45,7 @@ export async function initNew({ target, agent, workflow, packs = [], dryRun }) {
       agent,
       workflow,
       packs: normalizedPacks,
+      contextAdvisor,
       dryRun,
       created,
       written,
@@ -60,6 +68,7 @@ export async function initNew({ target, agent, workflow, packs = [], dryRun }) {
     agent,
     workflow,
     packs: normalizedPacks,
+    contextAdvisor,
     dryRun,
     created,
     written,
@@ -69,7 +78,7 @@ export async function initNew({ target, agent, workflow, packs = [], dryRun }) {
   };
 }
 
-async function buildFilePlan({ targetRoot, projectName, agent, workflow, packs }) {
+async function buildFilePlan({ targetRoot, projectName, agent, workflow, packs, contextAdvisor }) {
   const files = [];
   const context = {
     projectName,
@@ -77,6 +86,7 @@ async function buildFilePlan({ targetRoot, projectName, agent, workflow, packs }
     workflow,
     packs: packs.join(", ") || "none",
     packsJson: JSON.stringify(packs),
+    contextAdvisorJson: JSON.stringify(contextAdvisor),
     generatedAt: new Date().toISOString().slice(0, 10),
   };
 
@@ -149,6 +159,41 @@ async function buildFilePlan({ targetRoot, projectName, agent, workflow, packs }
         targetRoot,
         `docs/ai/packs/${pack}.md`,
         `docs/ai/packs/${pack}.md.tmpl`,
+        context
+      )
+    );
+  }
+
+  if (contextAdvisor) {
+    files.push(
+      await renderPlannedFile(
+        targetRoot,
+        ".agents/skills/context-artifact-advisor/SKILL.md",
+        ".agents/skills/context-artifact-advisor/SKILL.md.tmpl",
+        context
+      )
+    );
+    files.push(
+      await renderPlannedFile(
+        targetRoot,
+        "docs/ai/advisor/artifact-selection.md",
+        "docs/ai/advisor/artifact-selection.md.tmpl",
+        context
+      )
+    );
+    files.push(
+      await renderPlannedFile(
+        targetRoot,
+        "docs/ai/advisor/proposal-schema.md",
+        "docs/ai/advisor/proposal-schema.md.tmpl",
+        context
+      )
+    );
+    files.push(
+      await renderPlannedFile(
+        targetRoot,
+        "docs/ai/advisor/proposals/index.md",
+        "docs/ai/advisor/proposals/index.md.tmpl",
         context
       )
     );

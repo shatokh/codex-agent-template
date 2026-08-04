@@ -1,13 +1,14 @@
 import { initNew } from "./init-new.mjs";
 import { discoverExisting } from "./discover-existing.mjs";
 
-export async function onboardExisting({ target, agent, workflow, packs = [] }) {
+export async function onboardExisting({ target, agent, workflow, packs = [], contextAdvisor = false }) {
   const discovery = discoverExisting(target);
   const plan = await initNew({
     target: discovery.target,
     agent,
     workflow,
     packs,
+    contextAdvisor,
     dryRun: true,
   });
   const findings = buildFindings({ plan, discovery });
@@ -17,6 +18,7 @@ export async function onboardExisting({ target, agent, workflow, packs = [] }) {
     agent,
     workflow,
     packs,
+    contextAdvisor,
     discovery,
     proposedCreates: plan.created,
     blockedExisting: plan.blocked,

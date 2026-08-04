@@ -1,0 +1,54 @@
+---
+name: context-artifact-advisor
+description: Manually analyze visible session context and bounded repository evidence to propose durable AI-agent artifacts. Use only when explicitly invoked by the human. Never capture sessions automatically, install hooks, or implement proposed artifacts without separate approval.
+---
+
+# Context Artifact Advisor
+
+Use this skill only when the human explicitly asks for context artifact advice.
+
+## Scope
+
+Manual mode only.
+
+Analyze:
+
+- visible conversation context;
+- root agent instructions;
+- `docs/ai/advisor/` proposal files;
+- directly relevant project workflow docs.
+
+Do not:
+
+- enable hooks;
+- capture session ledgers;
+- read the whole repository without a bounded reason;
+- implement proposed artifacts;
+- expose secrets or raw sensitive content.
+
+## Look For
+
+- repeated human corrections;
+- recurring command, verification, or planning friction;
+- token-heavy repeated discovery;
+- rules that exist only in chat;
+- workflows that should become skills;
+- deterministic checks that should become scripts;
+- future hooks or adapters that need explicit approval.
+
+## Proposal Threshold
+
+Create a proposal only when:
+
+- the issue repeated at least twice;
+- or severity is high, such as secret risk, destructive action risk, CI blocker, or production risk;
+- or the human explicitly said to remember, automate, or always do something.
+
+## Output
+
+Use `docs/ai/advisor/proposal-schema.md`.
+
+Update `docs/ai/advisor/proposals/index.md` if creating a proposal file.
+
+Stop after proposals and ask for review.
+

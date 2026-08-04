@@ -95,6 +95,7 @@ test("CLI onboard-existing supports JSON output", async () => {
       "privacy",
       "--pack",
       "security",
+      "--context-advisor",
       "--dry-run",
       "--output",
       "json",
@@ -103,10 +104,12 @@ test("CLI onboard-existing supports JSON output", async () => {
 
     assert.equal(parsed.agent, "codex+claude");
     assert.deepEqual(parsed.packs, ["privacy", "security"]);
+    assert.equal(parsed.contextAdvisor, true);
     assert.equal(parsed.complete, false);
     assert.ok(parsed.proposedCreates.includes("AGENTS.md"));
     assert.ok(parsed.proposedCreates.includes("docs/tasks/TEMPLATE.md"));
     assert.ok(parsed.proposedCreates.includes("docs/ai/packs/privacy.md"));
+    assert.ok(parsed.proposedCreates.includes(".agents/skills/context-artifact-advisor/SKILL.md"));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

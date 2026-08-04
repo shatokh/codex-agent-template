@@ -263,12 +263,14 @@ codex-agent-template list
 - optional packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`;
 - richer `onboard-existing` recommendations and severity-grouped findings;
 - workflow-specific rule content for `task-first` and `spec-tdd`;
+- manual-mode `context-artifact-advisor` generation through `--context-advisor`;
 - smoke tests for dry-run, write, no-overwrite, and generated validation.
 
 Не реализовано:
 
 - interactive prompts;
 - `onboard-existing` file writing;
+- capture-mode context advisor;
 - `--force`;
 - update/merge engine.
 

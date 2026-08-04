@@ -41,6 +41,7 @@ export async function runCli(argv) {
       agent: options.agent || "codex",
       workflow: options.workflow || "light",
       packs: options.pack || [],
+      contextAdvisor: Boolean(options["context-advisor"]),
       dryRun: Boolean(options["dry-run"]),
     });
     if (options.output === "json") {
@@ -60,6 +61,7 @@ export async function runCli(argv) {
       agent: options.agent || "codex",
       workflow: options.workflow || "light",
       packs: options.pack || [],
+      contextAdvisor: Boolean(options["context-advisor"]),
     });
     if (options.output === "json") {
       printJson(result);
@@ -105,7 +107,7 @@ function parseOptions(argv) {
     }
 
     const key = arg.slice(2);
-    if (key === "dry-run" || key === "check") {
+    if (key === "dry-run" || key === "check" || key === "context-advisor") {
       options[key] = true;
       continue;
     }
@@ -149,6 +151,7 @@ function printInitResult(result) {
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
   console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
+  console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
 
   if (result.created.length > 0) {
     console.log("Files to create:");
@@ -180,8 +183,8 @@ function printHelp() {
   console.log(`codex-agent-template
 
 Commands:
-  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--dry-run] [--output text|json]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--dry-run] [--proposal-file <path>] [--check] [--output text|json]
+  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
+  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>] [--check] [--output text|json]
   validate --target <path> [--output text|json]
   list [--output text|json]
 `);
@@ -203,6 +206,7 @@ function printOnboardResult(result) {
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
   console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
+  console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
 
   console.log("Existing AI files:");
   printList(result.discovery.existingAiFiles);
