@@ -45,13 +45,13 @@ test("discover-existing reads bounded root project evidence", async () => {
       confidence: "high",
       evidence: ["project type: node"],
     });
-    assert.deepEqual(discovery.commands, [
+    assert.deepEqual(discovery.commands.map(({kind, command, confidence}) => ({kind, command, confidence})), [
       { kind: "unit-test", command: "pnpm run test", confidence: "high" },
       { kind: "lint", command: "pnpm run lint", confidence: "high" },
       { kind: "build", command: "pnpm run build", confidence: "high" },
       { kind: "project-validation", command: "pnpm run validate", confidence: "high" },
     ]);
-    assert.deepEqual(discovery.suggestedVerification, [
+    assert.deepEqual(discovery.suggestedVerification.map(({kind, command, confidence}) => ({kind, command, confidence})), [
       { kind: "project-validation", command: "pnpm run validate", confidence: "high" },
       { kind: "lint", command: "pnpm run lint", confidence: "high" },
       { kind: "unit-test", command: "pnpm run test", confidence: "high" },
@@ -283,7 +283,7 @@ test("render-onboard-proposal creates reviewable markdown", async () => {
   assert.match(markdown, /context-artifact-advisor/);
   assert.match(markdown, /## Verification Draft/);
   assert.match(markdown, /\| Unit tests \| `npm run test` \| high \|/);
-  assert.match(markdown, /unit-test: `npm run test` \(high\)/);
+  assert.match(markdown, /unit-test: `npm run test` \(high; cwd: `\.`; evidence: `not recorded`; not executed\)/);
   assert.match(markdown, /No target files were written/);
 });
 
@@ -510,7 +510,7 @@ test("CLI onboard-existing rejects simultaneous proposal file and dir", async ()
         path.join(tempRoot, ".local", "proposals"),
       ]),
       (error) => {
-        assert.equal(error.code, 1);
+        assert.equal(error.code, 2);
         assert.match(error.stderr, /Use either --proposal-file or --proposal-dir, not both/);
         return true;
       }

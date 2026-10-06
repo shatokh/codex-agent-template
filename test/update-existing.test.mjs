@@ -76,7 +76,8 @@ test("update-existing proposes review updates for changed project kind", async (
     assert.ok(result.updateCandidates.includes(".agent-template.json"));
     assert.ok(result.updateCandidates.includes("AGENTS.md"));
     assert.ok(result.updateCandidates.includes("docs/ai/verification.md"));
-    assert.ok(result.recommendations.includes("Review update candidates before applying any file changes."));
+    assert.equal(result.conflicts.length, 0);
+    assert.ok(result.plan.entries.some(entry => entry.diff.includes("No-code")));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -244,7 +245,7 @@ test("CLI update-existing --apply rejects proposal export", async () => {
         path.join(tempRoot, ".local", "proposals"),
       ]),
       (error) => {
-        assert.equal(error.code, 1);
+        assert.equal(error.code, 2);
         assert.match(error.stderr, /Do not use proposal export with --apply/);
         return true;
       }
@@ -267,6 +268,8 @@ test("CLI update-existing --apply writes approved updates", async () => {
       dryRun: false,
     });
 
+    const planFile = path.join(tempRoot, "review.json");
+    await execFileAsync(process.execPath, [cliPath, "update-existing", "--target", target, "--project-kind", "no-code", "--plan-file", planFile]);
     const result = await execFileAsync(process.execPath, [
       cliPath,
       "update-existing",
@@ -278,6 +281,8 @@ test("CLI update-existing --apply writes approved updates", async () => {
       "task-first",
       "--project-kind",
       "no-code",
+      "--plan-file",
+      planFile,
       "--apply",
       "--approval",
       "approved in test",

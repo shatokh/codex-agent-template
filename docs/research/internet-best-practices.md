@@ -34,3 +34,18 @@
 - Session artifact advisor.
 - Update/merge engine для существующих проектов.
 
+## Обновление 2026-10-06
+
+Первоначальные заметки выше — исторический анализ. Пользователь одобрил guarded update, manual advisor и опциональные skills; автоматический merge, новые adapters и hooks остаются вне scope согласно [ADR 0002](../decisions/0002-approved-reliability-and-skills.md).
+
+- [OpenAI: инструкции и skills](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra) — узкие triggers, короткий root и чтение по потребности задачи.
+- [Codex: AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) — native override заменяет same-level base; учитывать реальный порядок загрузки.
+- [Codex: skills](https://learn.chatgpt.com/docs/build-skills) и [Claude: skills](https://code.claude.com/docs/en/skills) — разные repo locations, progressive disclosure и управление invocation.
+- [Claude: memory](https://code.claude.com/docs/en/memory) — точные инструкции и ограничения совместимости импорта AGENTS.
+- [Agent Skills specification](https://agentskills.io/specification) — проверяемые name/description и структура skill.
+- [Node.js: parseArgs](https://nodejs.org/api/util.html#utilparseargsconfig), [exclusive file flags](https://nodejs.org/api/fs.html#file-system-flags), [Git ignore semantics](https://git-scm.com/docs/gitignore) — основа конкретных CLI/write checks.
+- [GitHub Node CI](https://docs.github.com/en/actions/tutorials/build-and-test-code/nodejs), [npm package files](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/) — компактная матрица и проверяемое содержимое tarball.
+- [OpenAI skill evals](https://developers.openai.com/blog/eval-skills) — оценивать результат, процедуру и эффективность на одинаковых fixtures.
+- [Node.js releases](https://nodejs.org/en/about/previous-releases) — на дату исследования Node 22/24 поддерживаются как LTS, Node 20 уже EOL; новая минимальная версия CLI — 22.
+
+Подробные привязки к найденным проблемам и критерии реализации сохранены в [одобренном proposal](../plans/upgrade-proposal-2026-10-06.md). Эти источники обосновывают подходы; наши manifest/plan conflict policies — проектные решения, а не стандарты, навязанные документацией.

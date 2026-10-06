@@ -12,7 +12,7 @@ The v1 scope is limited to Codex, Claude, and Codex+Claude modes.
 - Put always-on rules in `AGENTS.md` or `CLAUDE.md`.
 - Put long procedures in `docs/`, repeatable workflows in skills, and deterministic checks in scripts or future hooks.
 - Do not add adapters for Gemini, Cursor, Copilot, Cline, Roo, or Windsurf in v1 unless the plan is explicitly amended.
-- Do not implement hooks, session artifact advisor, or update/merge automation until they are promoted from backlog.
+- The approved 0.2 scope includes guarded updates, manual context advisor, and opt-in starter skills. Keep hooks, session capture, automatic merge, and plugin packaging in backlog.
 - Do not overwrite generated target-project files by default; new CLI behavior must prefer dry-run and reviewable proposals.
 - Keep discovery bounded and avoid loading entire repositories when focused evidence is enough.
 - Keep verification adaptive; simple projects should not receive heavy test matrices.
@@ -22,11 +22,14 @@ The v1 scope is limited to Codex, Claude, and Codex+Claude modes.
 
 Use [docs/plans/implementation-plan.md](docs/plans/implementation-plan.md) as the active implementation plan.
 
+Use [grill-me](.agents/skills/grill-me/SKILL.md) when a consequential architecture fork is contested or rests on material unsupported assumptions. Preserve settled decisions unless new evidence changes them.
+
 ## Verification
 
 Current lightweight validation:
 
 ```powershell
 node scripts/validate-project.mjs
+node --test
+node scripts/check-package.mjs
 ```
-

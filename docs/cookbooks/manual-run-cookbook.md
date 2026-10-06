@@ -1,209 +1,92 @@
-# Manual Run Cookbook
+# Manual run cookbook
 
-Практический cookbook для запуска `codex-agent-template` из консоли или через Codex-агента.
+Run from the repository checkout with Node.js 22+. Commands below work in PowerShell and a POSIX shell. Replace quoted paths with the intended target.
 
-Все команды ниже предполагают, что текущая директория:
+## Verify the tool
+
+```sh
+node bin/codex-agent-template.mjs list --output json
+node scripts/validate-project.mjs
+node --test
+node scripts/check-package.mjs
+```
+
+## New project
+
+Preview:
+
+```sh
+node bin/codex-agent-template.mjs init-new --target .local/demo --agent codex+claude --workflow task-first --skill grill-me --pack security
+```
+
+After reviewing the preview, explicitly create:
+
+```sh
+node bin/codex-agent-template.mjs init-new --target .local/demo --agent codex+claude --workflow task-first --skill grill-me --pack security --apply
+node bin/codex-agent-template.mjs validate --target .local/demo
+```
+
+Init blocks all existing generated files. It does not merge with existing AGENTS.md or .gitignore.
+
+For non-code work add --project-kind docs, game-design, or no-code. For manual advisor add --context-advisor. Starter skills are individually opt-in with repeated --skill. Conservative approval is the default; risk-based is an explicit choice.
+
+## Existing project proposal
+
+```sh
+node bin/codex-agent-template.mjs onboard-existing --target ../existing-project --workflow task-first --skill grill-me --dry-run --proposal-dir .local/proposals --output json
+```
+
+Review discovery evidence, suggestions, conflicts, and proposed artifacts. Commands are not executed. Onboarding writes no target infrastructure. JSON contains the exported proposal path. Existing exports are never replaced.
+
+For presence plus content validation, repeat the selected parameters with --check. Missing metadata/artifacts or invalid content cause exit code 1. Configuration/usage errors cause code 2.
+
+## Update generated project
+
+```sh
+node bin/codex-agent-template.mjs update-existing --target .local/demo --workflow spec-tdd --plan-file .local/demo-update.json --proposal-file .local/demo-update.md
+```
+
+Review both exports, including content diffs and per-file status. Conflicts require manual resolution and a fresh plan. The tool inherits stored options when flags are absent.
+
+```sh
+node bin/codex-agent-template.mjs update-existing --target .local/demo --apply --approval "reviewed saved plan" --plan-file .local/demo-update.json
+node bin/codex-agent-template.mjs validate --target .local/demo
+```
+
+Apply uses the options saved in the proposal. Explicit flags that change them invalidate the plan. Files changed since review also invalidate it. Never use an old proposal to approve a new snapshot.
+
+## Adopt legacy generation
+
+A project without a manifest requires reviewed adoption. Add --adopt during preview; apply that saved plan. Only matching artifacts and reviewed ignore extensions can be adopted. Custom instructions remain conflicts; reconcile them manually without dropping project-specific rules. Use a new export filename after each review.
+
+## Recovery
+
+Update retains originals in .agent-template-backups/<id>/files and records progress in journal.json. On failure, review the reported written paths, rollback state, and journal. Rollback avoids replacing files changed by another writer. Manual recovery must compare the current file, backup, and intended change. Do not blindly restore over new user edits. Directory creation may remain after a failed operation.
+
+## Paths with spaces
+
+PowerShell:
 
 ```powershell
-cd C:\Users\User\StudioProjects\codex-agent-template
+node bin/codex-agent-template.mjs onboard-existing --target 'C:\Projects\Existing Project' --output json
 ```
 
-## Быстрая Проверка CLI
+POSIX:
 
-```powershell
-node bin\codex-agent-template.mjs list
-node bin\codex-agent-template.mjs list --output json
-npm.cmd test
-npm.cmd run validate
+```sh
+node bin/codex-agent-template.mjs onboard-existing --target '/home/me/Existing Project' --output json
 ```
 
-## Новый Code Project
+## Grill Me
 
-Dry-run перед записью:
+In this repository, invoke $grill-me in Codex. Generated Claude Code projects use /grill-me. Example: "Challenge our choice of event sourcing: demand evidence, compare the simplest alternative, and identify a failure condition."
 
-```powershell
-node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-code-project --agent codex --workflow task-first --project-kind code --pack test-harness --dry-run
+The skill can select itself for disputed consequential decisions with unresolved evidence. It does not reopen an approved reversible choice without new facts. It asks up to three questions per round and waits for answers before judging the unresolved decision.
+
+## Evaluation
+
+```sh
+node scripts/eval-skills.mjs --scenario architecture
 ```
 
-Реальная генерация:
-
-```powershell
-node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-code-project --agent codex --workflow task-first --project-kind code --pack test-harness
-```
-
-Проверка результата:
-
-```powershell
-node bin\codex-agent-template.mjs validate --target C:\Users\User\StudioProjects\my-code-project
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\my-code-project --agent codex --workflow task-first --project-kind code --pack test-harness --check
-```
-
-## Новый No-Code Project
-
-Dry-run:
-
-```powershell
-node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-no-code-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --dry-run
-```
-
-Реальная генерация:
-
-```powershell
-node bin\codex-agent-template.mjs init-new --target C:\Users\User\StudioProjects\my-no-code-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor
-```
-
-Проверка результата:
-
-```powershell
-node bin\codex-agent-template.mjs validate --target C:\Users\User\StudioProjects\my-no-code-project
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\my-no-code-project --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --check
-```
-
-## Existing Repo Proposal
-
-Для существующего repo сначала делай non-writing proposal.
-
-Code repo:
-
-```powershell
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\existing-code-repo --agent codex --workflow task-first --project-kind code --pack test-harness --context-advisor --dry-run --proposal-dir .local\proposals
-```
-
-No-code repo:
-
-```powershell
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\thornwake\thornwake-boardgame --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --dry-run --proposal-dir .local\proposals
-```
-
-QAGym-style mature repo:
-
-```powershell
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\QAGym --agent codex --workflow task-first --project-kind code --pack security --pack test-harness --context-advisor --dry-run --proposal-dir .local\proposals
-```
-
-Proposal будет сохранен в:
-
-```text
-.local/proposals/<project-name>/<timestamp>-onboarding-proposal.md
-```
-
-`.local/` игнорируется git и подходит для локального архива review-артефактов.
-
-## Existing Repo Check
-
-Проверить, хватает ли уже выбранной AI-инфраструктуры:
-
-```powershell
-node bin\codex-agent-template.mjs onboard-existing --target C:\Users\User\StudioProjects\existing-repo --agent codex --workflow task-first --project-kind code --pack test-harness --context-advisor --check
-```
-
-Если exit code `0` и `Complete: yes`, выбранный набор файлов присутствует и metadata совпадает.
-
-Если exit code `1`, смотри:
-
-- `Proposed files to create`
-- `Blocked existing files`
-- `Configuration issues`
-- `Recommendations`
-
-## Existing Generated Files Update Review
-
-Если AI-инфраструктура уже создана, но template изменился, сначала запускай update review без записи:
-
-```powershell
-node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioProjects\existing-repo --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --proposal-dir .local\proposals
-```
-
-Команда покажет:
-
-- `Missing files to create`
-- `Existing files to review for update`
-- `Unchanged generated files`
-
-`update-existing` без `--apply` ничего не пишет в target repo. Это review/diff gate перед ручным merge или approved apply.
-
-После review proposal и явного approval можно применить update:
-
-```powershell
-node bin\codex-agent-template.mjs update-existing --target C:\Users\User\StudioProjects\existing-repo --agent codex --workflow task-first --project-kind no-code --pack test-harness --context-advisor --apply --approval "approved after proposal review"
-```
-
-`--apply` нельзя совмещать с `--proposal-file` или `--proposal-dir`. Для apply обязательно нужен непустой `--approval`.
-
-## Project Kind
-
-Используй `--project-kind` явно, особенно для не-кодовых проектов.
-
-`onboard-existing` подсказывает project kind по найденным файлам, но финальный выбор остается за человеком.
-
-```text
-code         обычный software project
-docs         документационный проект
-game-design  дизайн игры, прототип, narrative/design docs
-no-code      проект без software runtime: правила, контент, ассеты, research, настолка, операционные docs
-```
-
-Для `no-code` verification не будет притворяться software test matrix. Вместо этого будут checks для правил/workflow, контента/ассетов, walkthrough, consistency, export/publishing и decision log.
-
-## Agent Mode
-
-```text
-codex         создает AGENTS.md
-claude        создает CLAUDE.md
-codex+claude  создает AGENTS.md и CLAUDE.md с импортом @AGENTS.md
-```
-
-## Workflow
-
-```text
-light       минимальная AI-инфраструктура
-task-first  добавляет docs/tasks/TEMPLATE.md и approval workflow
-spec-tdd    добавляет specs и AI change records
-```
-
-## Packs
-
-```text
-privacy
-external-services
-security
-test-harness
-docs
-```
-
-Можно передавать несколько `--pack`.
-
-## Safe Manual Flow
-
-1. Run `onboard-existing --dry-run --proposal-dir .local\proposals`.
-2. Review proposal markdown.
-3. If repo is empty or conflicts are acceptable, run `init-new`.
-4. Run `validate --target <project>`.
-5. Run `onboard-existing --check` with the same options.
-6. Review git status in target repo before staging anything.
-7. Use `update-existing --proposal-dir .local\proposals` after template upgrades.
-
-## Codex Prompt
-
-Copy-paste prompt для запуска через Codex-агента:
-
-```text
-В проекте C:\Users\User\StudioProjects\codex-agent-template запусти codex-agent-template для целевого repo <TARGET_PATH>.
-
-Сначала сделай non-writing onboard-existing dry-run с proposal-dir .local\proposals.
-Параметры:
-- agent: codex
-- workflow: task-first
-- project-kind: <code|docs|game-design|no-code>
-- packs: <укажи нужные packs>
-- context-advisor: <да/нет>
-
-Покажи summary proposal, путь к markdown proposal и риски. Не запускай init-new и не меняй target repo без моего явного апрува.
-```
-
-После апрува на применение:
-
-```text
-Примени approved codex-agent-template init-new к <TARGET_PATH> с теми же параметрами.
-Не перезаписывай existing files. После запуска выполни validate и onboard-existing --check, покажи итоговый status target repo и не коммить без моего отдельного апрува.
-```
+Default evaluation only previews prompts/rubrics. See ../evals/README.md for explicitly running model sessions, account/resource considerations, and limits of the evidence.

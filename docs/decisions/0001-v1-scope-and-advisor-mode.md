@@ -6,6 +6,8 @@ Date: 2026-08-04
 
 Accepted
 
+Historical scope. [Decision 0002](0002-approved-reliability-and-skills.md) supersedes the deferral of guarded updates and manual advisor after explicit user approval on 2026-10-06; other backlog boundaries remain.
+
 ## Context
 
 `codex-agent-template` is intended to become a reusable bootstrap project for AI-agent infrastructure across multiple repositories and languages. The initial temptation is to support many agent adapters, hooks, and context capture workflows immediately, but that would increase implementation risk and make the first version harder to trust.
@@ -44,4 +46,3 @@ Capture mode, hook-based session ledgers, and automatic delta tracking are defer
 The first working version should be simpler, easier to validate, and safer to run in existing repositories.
 
 The project will still preserve a path toward more advanced advisor automation, but those features must not enter early scope by accident.
-

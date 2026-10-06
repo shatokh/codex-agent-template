@@ -7,6 +7,8 @@ Workflow: \`${result.workflow}\`
 Project kind: \`${result.projectKind || "code"}\`
 Packs: \`${result.packs.length === 0 ? "none" : result.packs.join(", ")}\`
 Context advisor: \`${result.contextAdvisor ? "manual" : "disabled"}\`
+Skills: \`${result.skills?.join(", ") || "none"}\`
+Approval policy: \`${result.approvalPolicy || "conservative"}\`
 Complete: \`${result.complete ? "yes" : "no"}\`
 
 No target files were written by this proposal.
@@ -95,7 +97,7 @@ function renderCommands(commands) {
   }
 
   return commands
-    .map((command) => `- ${command.kind}: \`${command.command}\` (${command.confidence})`)
+    .map((command) => `- ${command.kind}: \`${command.command}\` (${command.confidence}; cwd: \`${command.workingDirectory || "."}\`; evidence: \`${command.evidence || "not recorded"}\`; not executed)`)
     .join("\n");
 }
 

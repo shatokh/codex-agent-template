@@ -1,12 +1,15 @@
 import { initNew } from "./init-new.mjs";
 import { discoverExisting } from "./discover-existing.mjs";
 import { normalizeProjectKind } from "./project-kind.mjs";
+import { validateGeneratedProject } from "./validate-generated-project.mjs";
 
 export async function onboardExisting({
   target,
-  agent,
-  workflow,
+  agent = "codex",
+  workflow = "light",
   packs = [],
+  skills = [],
+  approvalPolicy = "conservative",
   contextAdvisor = false,
   projectKind = "code",
 }) {
@@ -18,7 +21,10 @@ export async function onboardExisting({
     workflow,
     projectKind: normalizedProjectKind,
     packs,
+    skills,
+    approvalPolicy,
     contextAdvisor,
+    discovery,
     dryRun: true,
   });
   const configurationIssues = buildConfigurationIssues({
@@ -28,12 +34,21 @@ export async function onboardExisting({
     packs,
     contextAdvisor,
     projectKind: normalizedProjectKind,
+    skills,
+    approvalPolicy,
   });
   const findings = buildFindings({
     plan,
     discovery,
     selectedProjectKind: normalizedProjectKind,
   });
+  const validation = discovery.agentTemplate.exists ? await validateGeneratedProject(discovery.target) : { valid: false, errors: ["missing .agent-template.json"], findings: [] };
+  const contentFindings = validation.findings.map(finding => ({
+    ...finding,
+    severity: finding.severity === "error" ? "high" : finding.severity === "warning" ? "medium" : "info",
+    title: finding.code,
+    detail: `${finding.path}: ${finding.explanation}${finding.suggestedFix ? ` ${finding.suggestedFix}` : ""}`,
+  }));
 
   return {
     target: discovery.target,
@@ -42,11 +57,16 @@ export async function onboardExisting({
     projectKind: normalizedProjectKind,
     packs,
     contextAdvisor,
+    skills,
+    approvalPolicy,
     discovery,
     proposedCreates: plan.created,
     blockedExisting: plan.blocked,
     configurationIssues,
-    complete: plan.created.length === 0 && configurationIssues.length === 0,
+    presenceComplete: plan.created.length === 0 && configurationIssues.length === 0,
+    contentValid: validation.valid,
+    validation,
+    complete: plan.created.length === 0 && configurationIssues.length === 0 && validation.valid,
     recommendations: buildRecommendations({
       plan,
       discovery,
@@ -56,8 +76,10 @@ export async function onboardExisting({
       workflow,
       packs,
       contextAdvisor,
+      validation,
     }),
-    findings: [...findings, ...configurationIssuesToFindings(configurationIssues)],
+    findings: [...findings, ...configurationIssuesToFindings(configurationIssues), ...contentFindings,
+      ...discovery.warnings.map(warning => ({severity:"info",title:"Discovery limitation",detail:`${warning.path}: ${warning.code}`}))],
     verificationDraft: buildVerificationDraft(discovery, normalizedProjectKind),
   };
 }
@@ -71,16 +93,19 @@ function buildRecommendations({
   workflow,
   packs,
   contextAdvisor,
+  validation,
 }) {
   const projectKindMismatch =
     discovery.projectKindSuggestion.kind !== "code" &&
     discovery.projectKindSuggestion.kind !== selectedProjectKind;
 
   if (plan.created.length === 0 && configurationIssues.length === 0 && !projectKindMismatch) {
+    if (!validation.valid) return ["Repair the reported content validation errors before treating this infrastructure as complete."];
     return ["No generation needed for the selected agent/workflow/packs."];
   }
 
   const recommendations = [];
+  if (discovery.agentTemplate.exists && !validation.valid) recommendations.push("Repair the reported content validation errors before treating this infrastructure as complete.");
 
   if (plan.blocked.length === 0) {
     recommendations.push("Safe to run init-new for the selected options after review.");
@@ -161,7 +186,7 @@ function quotePowerShellArg(arg) {
   if (/^[a-zA-Z0-9._:\\/-]+$/.test(arg)) {
     return arg;
   }
-  return `"${arg.replaceAll('"', '`"')}"`;
+  return `'${arg.replaceAll("'", "''")}'`;
 }
 
 function buildConfigurationIssues({
@@ -171,6 +196,8 @@ function buildConfigurationIssues({
   packs,
   contextAdvisor,
   projectKind,
+  skills = [],
+  approvalPolicy = "conservative",
 }) {
   if (!discovery.agentTemplate.exists) {
     return [];
@@ -192,6 +219,8 @@ function buildConfigurationIssues({
   compareMetadata(issues, "workflow", workflow, config.workflow);
   compareMetadata(issues, "projectKind", projectKind, config.projectKind || "code");
   compareMetadata(issues, "contextAdvisor", contextAdvisor, config.contextAdvisor);
+  compareMetadata(issues, "approvalPolicy", approvalPolicy, config.approvalPolicy || "conservative");
+  if (JSON.stringify([...skills].sort()) !== JSON.stringify([...(config.skills || [])].sort())) issues.push({path:".agent-template.json",expected:`skills=${skills.join(", ")}`,actual:`skills=${(config.skills || []).join(", ")}`});
 
   const actualPacks = Array.isArray(config.packs) ? config.packs : [];
   if (JSON.stringify([...packs].sort()) !== JSON.stringify([...actualPacks].sort())) {

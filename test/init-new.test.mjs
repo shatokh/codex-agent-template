@@ -13,6 +13,8 @@ import { validateGeneratedProject } from "../src/validate-generated-project.mjs"
 const execFileAsync = promisify(execFile);
 const cliPath = path.resolve("bin", "codex-agent-template.mjs");
 const lightDocs = [
+  "docs/ai/local-overrides.md",
+  ".agent-template-manifest.json",
   "docs/ai/onboarding-notes.md",
   "docs/ai/rule-quality-checklist.md",
   "docs/ai/verification.md",
@@ -178,6 +180,7 @@ test("CLI init-new reports blocked files without completed wording", async () =>
       execFileAsync(process.execPath, [
         cliPath,
         "init-new",
+        "--apply",
         "--target",
         target,
         "--agent",
@@ -205,6 +208,7 @@ test("CLI init-new writes files and CLI validate accepts them", async () => {
     const init = await execFileAsync(process.execPath, [
       cliPath,
       "init-new",
+        "--apply",
       "--target",
       target,
       "--agent",
@@ -218,7 +222,7 @@ test("CLI init-new writes files and CLI validate accepts them", async () => {
     assert.match(validate.stdout, /Generated project validation passed/);
 
     const files = await readdir(target);
-    assert.deepEqual(files.sort(), [".agent-template.json", ".gitignore", "CLAUDE.md", "docs"].sort());
+    assert.deepEqual(files.sort(), [".agent-template-manifest.json", ".agent-template.json", ".gitignore", "CLAUDE.md", "docs"].sort());
 
     const allFiles = await listFiles(target);
     assert.deepEqual(allFiles.sort(), [
@@ -306,7 +310,7 @@ test("generated validation rejects missing local override ignore rules", async (
 
     const validation = await validateGeneratedProject(target);
     assert.equal(validation.valid, false);
-    assert.ok(validation.errors.includes("missing .gitignore"));
+    assert.ok(validation.errors.some(error => error.includes("missing .gitignore")));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -328,7 +332,7 @@ test("generated validation rejects missing workflow artifacts", async () => {
 
     const validation = await validateGeneratedProject(target);
     assert.equal(validation.valid, false);
-    assert.ok(validation.errors.includes("missing docs/specs/TEMPLATE.md"));
+    assert.ok(validation.errors.some(error => error.includes("missing docs/specs/TEMPLATE.md")));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -351,7 +355,7 @@ test("generated validation rejects missing optional pack artifacts", async () =>
 
     const validation = await validateGeneratedProject(target);
     assert.equal(validation.valid, false);
-    assert.ok(validation.errors.includes("missing docs/ai/packs/privacy.md"));
+    assert.ok(validation.errors.some(error => error.includes("missing docs/ai/packs/privacy.md")));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
@@ -374,7 +378,7 @@ test("generated validation rejects missing context advisor artifacts", async () 
 
     const validation = await validateGeneratedProject(target);
     assert.equal(validation.valid, false);
-    assert.ok(validation.errors.includes("missing docs/ai/advisor/proposal-schema.md"));
+    assert.ok(validation.errors.some(error => error.includes("missing docs/ai/advisor/proposal-schema.md")));
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

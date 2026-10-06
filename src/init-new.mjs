@@ -1,295 +1,91 @@
-import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { normalizeConfig, schemaVersion, templateVersion, skillRoots } from "./config.mjs";
+import { discoverExisting } from "./discover-existing.mjs";
+import { applyEntries, currentContent, makeEntry, manifestFile, safePath } from "./file-plan.mjs";
+import { projectKindLabel, verificationGuidanceForProjectKind, verificationRowsForProjectKind } from "./project-kind.mjs";
 
-import {
-  normalizeProjectKind,
-  projectKindLabel,
-  verificationGuidanceForProjectKind,
-  verificationRowsForProjectKind,
-} from "./project-kind.mjs";
-
-const moduleDir = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(moduleDir, "..");
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const templatesRoot = path.join(projectRoot, "templates", "base");
 
-const supportedPacks = ["privacy", "external-services", "security", "test-harness", "docs"];
-
-export async function initNew({
-  target,
-  agent,
-  workflow,
-  packs = [],
-  contextAdvisor = false,
-  projectKind = "code",
-  generatedAt,
-  dryRun,
-}) {
+export async function initNew({ target, dryRun = true, ...options }) {
   const targetRoot = path.resolve(target);
-  const projectName = path.basename(targetRoot);
-  const normalizedPacks = normalizePacks(packs);
-  const normalizedProjectKind = normalizeProjectKind(projectKind);
-  const plan = await buildFilePlan({
-    targetRoot,
-    projectName,
-    agent,
-    workflow,
-    packs: normalizedPacks,
-    contextAdvisor,
-    projectKind: normalizedProjectKind,
-    generatedAt,
-  });
-  const blocked = [];
-  const created = [];
-  const written = [];
-  const warnings = [];
-  const errors = [];
+  const config = normalizeConfig(options);
+  const discovery = options.discovery ?? discoverExisting(targetRoot);
+  const files = await buildGeneratedFilePlan({target:targetRoot, ...config, discovery});
+  files.push(manifestFile(targetRoot,files));
+  const entries=files.map(file=>makeEntry(targetRoot,file,currentContent(targetRoot,file.relativePath)===null ? "create" : "conflict", "init never overwrites"));
+  const blocked=entries.filter(x=>x.status==="conflict").map(x=>x.path);
+  const result={target:targetRoot,...config,dryRun,created:entries.filter(x=>x.status==="create").map(x=>x.path),written:[],blocked,warnings:discovery.warnings.map(x=>`${x.code}: ${x.path}`),errors:[],discovery,entries};
+  if(!dryRun && !blocked.length) Object.assign(result,await applyEntries(targetRoot,entries,{journal:false}));
+  return result;
+}
 
-  for (const file of plan) {
-    if (existsSync(file.absolutePath)) {
-      blocked.push(file.relativePath);
-    } else {
-      created.push(file.relativePath);
+export async function buildGeneratedFilePlan({target, discovery, ...options}) {
+  const targetRoot=path.resolve(target), config=normalizeConfig(options);
+  discovery ??= discoverExisting(targetRoot);
+  const {agent,workflow,projectKind,packs,skills,contextAdvisor,approvalPolicy,generatedAt}=config;
+  const roots=skillRoots(agent), selectedSkills=[...skills,...(contextAdvisor ? ["context-artifact-advisor"] : [])];
+  const packTriggers={privacy:"handling personal or private data","external-services":"using paid APIs, production accounts, or external services",security:"changing authentication, permissions, dependencies, or secret handling","test-harness":"setting up fixtures, tests, playtests, or repeatable verification",docs:"changing documented setup, commands, or public behavior"};
+  const context={projectName:markdownText(path.basename(targetRoot)),projectSummary:markdownText(discovery.summary),agent,workflow,projectKind,projectKindLabel:projectKindLabel(projectKind),generatedAt,
+    workflowRules:workflowRules(workflow,projectKind),approvalRules:approvalPolicy==="risk-based" ? "- Continue explicitly authorized, reversible work within scope. Plan and seek approval for destructive operations, production changes, or consequential unresolved scope.\n- Reuse approval for its agreed scope; do not request it again for each implementation step." : "- For meaningful code, infrastructure, content, rules, assets, dependency, or behavior changes, plan first and wait for explicit approval unless that scope is already approved.\n- Continue work within the agreed scope without requesting approval again for each step.",
+    optionalGuidance:packs.map(name=>`- When ${packTriggers[name]}, use [${name} guidance](docs/ai/packs/${name}.md).`).join("\n") + (selectedSkills.length ? "\n- Available workflows: " + selectedSkills.map(name=>`[${name}](${roots[0]}/${name}/SKILL.md)`).join(", ")+"." : "") + (skills.includes("grill-me") ? "\n- Use grill-me for a contested consequential decision with unresolved evidence; let settled routine choices proceed." : ""),
+    verificationTableRows:renderVerificationRows(projectKind,discovery), verificationGuidance:verificationGuidanceForProjectKind(projectKind),
+    configJson:JSON.stringify({template:"codex-agent-template",version:templateVersion,schemaVersion,...config},null,2)};
+  const files=[];
+  async function render(relativePath,templateName) {
+    const template=await readFile(path.join(templatesRoot,templateName),"utf8");
+    files.push({relativePath,absolutePath:safePath(targetRoot,relativePath),content:template.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g,(match,key)=>{
+      if(!(key in context)) throw new Error(`Unknown template variable: ${key}`);
+      return String(context[key]);
+    })});
+  }
+  if(agent!=="claude") await render("AGENTS.md","AGENTS.md.tmpl");
+  if(agent!=="codex") await render("CLAUDE.md",agent==="claude" ? "CLAUDE.md.tmpl" : "CLAUDE.import-agents.md.tmpl");
+  await render(".agent-template.json","agent-template.json.tmpl");
+  await render(".gitignore","gitignore.tmpl");
+  for(const name of ["onboarding-notes","rule-quality-checklist","verification","local-overrides"]) await render(`docs/ai/${name}.md`,`docs/ai/${name}.md.tmpl`);
+  if(workflow==="task-first") await render("docs/tasks/TEMPLATE.md","docs/tasks/TEMPLATE.md.tmpl");
+  if(workflow==="spec-tdd") for(const name of ["specs","ai-change-records"]) await render(`docs/${name}/TEMPLATE.md`,`docs/${name}/TEMPLATE.md.tmpl`);
+  for(const name of packs) await render(`docs/ai/packs/${name}.md`,`docs/ai/packs/${name}.md.tmpl`);
+  for(const name of skills) {
+    const content=await readFile(path.join(projectRoot,"templates","skills",name,"SKILL.md"),"utf8");
+    for(const root of roots) {
+      const relativePath=`${root}/${name}/SKILL.md`;
+      files.push({relativePath,absolutePath:safePath(targetRoot,relativePath),content});
+      if(root===".agents/skills" && name==="grill-me") {
+        const metadataPath=`${root}/${name}/agents/openai.yaml`;
+        files.push({relativePath:metadataPath,absolutePath:safePath(targetRoot,metadataPath),content:await readFile(path.join(projectRoot,"templates/skills/grill-me/agents/openai.yaml"),"utf8")});
+      }
     }
   }
-
-  if (!existsSync(targetRoot)) {
-    warnings.push("target directory does not exist and will be created");
+  if(contextAdvisor) {
+    const source=await readFile(path.join(templatesRoot,".agents/skills/context-artifact-advisor/SKILL.md.tmpl"),"utf8");
+    for(const root of roots) {
+      const relativePath=`${root}/context-artifact-advisor/SKILL.md`;
+      const content=root===".claude/skills" ? source.replace(/\n---\r?\n/,"\ndisable-model-invocation: true\n---\n") : source;
+      files.push({relativePath,absolutePath:safePath(targetRoot,relativePath),content});
+      if(root===".agents/skills") {
+        const name=`${root}/context-artifact-advisor/agents/openai.yaml`;
+        files.push({relativePath:name,absolutePath:safePath(targetRoot,name),content:"policy:\n  allow_implicit_invocation: false\n"});
+      }
+    }
+    for(const name of ["artifact-selection","proposal-schema","proposals/index"]) await render(`docs/ai/advisor/${name}.md`,`docs/ai/advisor/${name}.md.tmpl`);
   }
-
-  if (dryRun || blocked.length > 0) {
-    return {
-      target: targetRoot,
-      agent,
-      workflow,
-      projectKind: normalizedProjectKind,
-      packs: normalizedPacks,
-      contextAdvisor,
-      dryRun,
-      created,
-      written,
-      blocked,
-      warnings,
-      errors,
-    };
-  }
-
-  await mkdir(targetRoot, { recursive: true });
-
-  for (const file of plan) {
-    await mkdir(path.dirname(file.absolutePath), { recursive: true });
-    await writeFile(file.absolutePath, file.content, "utf8");
-    written.push(file.relativePath);
-  }
-
-  return {
-    target: targetRoot,
-    agent,
-    workflow,
-    projectKind: normalizedProjectKind,
-    packs: normalizedPacks,
-    contextAdvisor,
-    dryRun,
-    created,
-    written,
-    blocked,
-    warnings,
-    errors,
-  };
-}
-
-export async function buildGeneratedFilePlan({
-  target,
-  agent,
-  workflow,
-  packs = [],
-  contextAdvisor = false,
-  projectKind = "code",
-  generatedAt,
-}) {
-  const targetRoot = path.resolve(target);
-  const projectName = path.basename(targetRoot);
-  return buildFilePlan({
-    targetRoot,
-    projectName,
-    agent,
-    workflow,
-    packs: normalizePacks(packs),
-    contextAdvisor,
-    projectKind: normalizeProjectKind(projectKind),
-    generatedAt,
-  });
-}
-
-async function buildFilePlan({
-  targetRoot,
-  projectName,
-  agent,
-  workflow,
-  packs,
-  contextAdvisor,
-  projectKind,
-  generatedAt,
-}) {
-  const files = [];
-  const context = {
-    projectName,
-    agent,
-    workflow,
-    projectKind,
-    projectKindLabel: projectKindLabel(projectKind),
-    packs: packs.join(", ") || "none",
-    packsJson: JSON.stringify(packs),
-    contextAdvisorJson: JSON.stringify(contextAdvisor),
-    projectKindJson: JSON.stringify(projectKind),
-    verificationTableRows: renderVerificationRows(projectKind),
-    verificationGuidance: verificationGuidanceForProjectKind(projectKind),
-    generatedAt: generatedAt || new Date().toISOString().slice(0, 10),
-  };
-
-  if (agent === "codex") {
-    files.push(await renderPlannedFile(targetRoot, "AGENTS.md", "AGENTS.md.tmpl", context));
-  } else if (agent === "claude") {
-    files.push(await renderPlannedFile(targetRoot, "CLAUDE.md", "CLAUDE.md.tmpl", context));
-  } else if (agent === "codex+claude") {
-    files.push(await renderPlannedFile(targetRoot, "AGENTS.md", "AGENTS.md.tmpl", context));
-    files.push(
-      await renderPlannedFile(
-        targetRoot,
-        "CLAUDE.md",
-        "CLAUDE.import-agents.md.tmpl",
-        context
-      )
-    );
-  }
-
-  files.push(
-    await renderPlannedFile(targetRoot, ".agent-template.json", "agent-template.json.tmpl", context)
-  );
-  files.push(await renderPlannedFile(targetRoot, ".gitignore", "gitignore.tmpl", context));
-  files.push(
-    await renderPlannedFile(
-      targetRoot,
-      "docs/ai/onboarding-notes.md",
-      "docs/ai/onboarding-notes.md.tmpl",
-      context
-    )
-  );
-  files.push(
-    await renderPlannedFile(
-      targetRoot,
-      "docs/ai/rule-quality-checklist.md",
-      "docs/ai/rule-quality-checklist.md.tmpl",
-      context
-    )
-  );
-  files.push(
-    await renderPlannedFile(
-      targetRoot,
-      "docs/ai/verification.md",
-      "docs/ai/verification.md.tmpl",
-      context
-    )
-  );
-
-  if (workflow === "task-first") {
-    files.push(
-      await renderPlannedFile(targetRoot, "docs/tasks/TEMPLATE.md", "docs/tasks/TEMPLATE.md.tmpl", context)
-    );
-  } else if (workflow === "spec-tdd") {
-    files.push(
-      await renderPlannedFile(targetRoot, "docs/specs/TEMPLATE.md", "docs/specs/TEMPLATE.md.tmpl", context)
-    );
-    files.push(
-      await renderPlannedFile(
-        targetRoot,
-        "docs/ai-change-records/TEMPLATE.md",
-        "docs/ai-change-records/TEMPLATE.md.tmpl",
-        context
-      )
-    );
-  }
-
-  for (const pack of packs) {
-    files.push(
-      await renderPlannedFile(
-        targetRoot,
-        `docs/ai/packs/${pack}.md`,
-        `docs/ai/packs/${pack}.md.tmpl`,
-        context
-      )
-    );
-  }
-
-  if (contextAdvisor) {
-    files.push(
-      await renderPlannedFile(
-        targetRoot,
-        ".agents/skills/context-artifact-advisor/SKILL.md",
-        ".agents/skills/context-artifact-advisor/SKILL.md.tmpl",
-        context
-      )
-    );
-    files.push(
-      await renderPlannedFile(
-        targetRoot,
-        "docs/ai/advisor/artifact-selection.md",
-        "docs/ai/advisor/artifact-selection.md.tmpl",
-        context
-      )
-    );
-    files.push(
-      await renderPlannedFile(
-        targetRoot,
-        "docs/ai/advisor/proposal-schema.md",
-        "docs/ai/advisor/proposal-schema.md.tmpl",
-        context
-      )
-    );
-    files.push(
-      await renderPlannedFile(
-        targetRoot,
-        "docs/ai/advisor/proposals/index.md",
-        "docs/ai/advisor/proposals/index.md.tmpl",
-        context
-      )
-    );
-  }
-
   return files;
 }
 
-function normalizePacks(packs) {
-  const unique = [...new Set(packs)];
-  for (const pack of unique) {
-    if (!supportedPacks.includes(pack)) {
-      throw new Error(`Unsupported pack: ${pack}`);
-    }
-  }
-  return unique;
+function workflowRules(workflow,kind) {
+  if(workflow==="light") return "- Use a short plan for multi-step work; verify the changed behavior with the smallest relevant check.";
+  if(workflow==="task-first") return "- For substantial work, create or update a task using [the task template](docs/tasks/TEMPLATE.md): scope, observable acceptance criteria, verification, and approval status.\n- Record progress and evidence in that task; keep routine fixes proportional to their size.";
+  return "- For substantial behavior changes, use [the spec template](docs/specs/TEMPLATE.md) to define scope, expected behavior, acceptance criteria, and verification.\n" + (kind==="code" ? "- For testable behavior, write a failing test, implement the smallest fix, verify it, then refactor within scope. Record why when TDD is impractical." : "- For content, design, or rules changes, use review, scenarios, consistency checks, or playtests; do not invent software TDD commands.") + "\n- Record verification and deviations with [the change record template](docs/ai-change-records/TEMPLATE.md).";
 }
 
-function renderVerificationRows(projectKind) {
-  return verificationRowsForProjectKind(projectKind)
-    .map((row) => `| ${row[0]} | ${row[1]} | ${row[2]} |`)
-    .join("\n");
+function renderVerificationRows(kind,discovery) {
+  if(kind!=="code") return verificationRowsForProjectKind(kind).map(row=>`| ${row.join(" | ")} |`).join("\n");
+  const known=discovery.suggestedVerification.filter(x=>x.status==="found" && x.confidence==="high");
+  if(!known.length) return "| Verification | Not configured | No confirmed command; review discovery suggestions |";
+  return known.map(x=>`| ${markdownText(x.kind)} | ${markdownText(x.command)} (cwd: ${markdownText(x.workingDirectory)}) | Detected, not executed; ${markdownText(x.evidence)} |`).join("\n");
 }
-
-async function renderPlannedFile(targetRoot, relativePath, templateName, context) {
-  const template = await readFile(path.join(templatesRoot, templateName), "utf8");
-  return {
-    relativePath,
-    absolutePath: path.join(targetRoot, relativePath),
-    content: renderTemplate(template, context),
-  };
-}
-
-function renderTemplate(template, context) {
-  return template.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (match, key) => {
-    if (!(key in context)) {
-      throw new Error(`Unknown template variable: ${key}`);
-    }
-    return String(context[key]);
-  });
-}
+function markdownText(value) { return String(value).replace(/[\r\n]/g," ").replace(/\|/g,"\\|").replace(/`/g,"'"); }

@@ -1,430 +1,112 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { readFile, mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
-
+import { parseArgs } from "node:util";
+import { agents, workflows, packs, skills, approvalPolicies, ProjectError } from "./config.mjs";
+import { acceptedProjectKinds, supportedProjectKinds } from "./project-kind.mjs";
 import { initNew } from "./init-new.mjs";
 import { onboardExisting } from "./onboard-existing.mjs";
-import { acceptedProjectKinds, supportedProjectKinds } from "./project-kind.mjs";
-import { renderOnboardProposal } from "./render-onboard-proposal.mjs";
-import { renderUpdateProposal } from "./render-update-proposal.mjs";
 import { updateExisting } from "./update-existing.mjs";
 import { validateGeneratedProject } from "./validate-generated-project.mjs";
+import { renderOnboardProposal } from "./render-onboard-proposal.mjs";
+import { renderUpdateProposal } from "./render-update-proposal.mjs";
+import { printInitResult, printOnboardResult, printUpdateResult } from "./cli-format.mjs";
+import { safePath } from "./file-plan.mjs";
 
-const agentModes = ["codex", "claude", "codex+claude"];
-const workflows = ["light", "task-first", "spec-tdd"];
-const packs = ["privacy", "external-services", "security", "test-harness", "docs"];
+const str={type:"string"},bool={type:"boolean"},multi={type:"string",multiple:true};
+const common={target:str,output:str,help:{type:"boolean",short:"h"}};
+const generation={agent:str,workflow:str,"project-kind":str,pack:multi,skill:multi,"context-advisor":bool,"no-context-advisor":bool,"approval-policy":str,"dry-run":bool};
+const exportOptions={"proposal-file":str,"proposal-dir":str};
+const commandOptions={list:{output:str,help:common.help},validate:common,"init-new":{...common,...generation,apply:bool},"onboard-existing":{...common,...generation,...exportOptions,check:bool},"update-existing":{...common,...generation,...exportOptions,check:bool,apply:bool,approval:str,"plan-file":str,adopt:bool}};
 
 export async function runCli(argv) {
-  const [command, ...rest] = argv;
-  const options = parseOptions(rest);
-
-  if (!command || command === "help" || command === "--help") {
-    printHelp();
-    return;
-  }
-
-  if (command === "list") {
-    const result = {
-      agents: agentModes,
-      workflows,
-      projectKinds: supportedProjectKinds,
-      packs,
-    };
-    if (options.output === "json") {
-      printJson(result);
-    } else {
-      console.log("Agents: codex, claude, codex+claude");
-      console.log("Workflows: light, task-first, spec-tdd");
-      console.log("Project kinds: code, docs, game-design, no-code");
-      console.log("Packs: privacy, external-services, security, test-harness, docs");
-    }
-    return;
-  }
-
-  if (command === "init-new") {
-    const result = await initNew({
-      target: options.target || ".",
-      agent: options.agent || "codex",
-      workflow: options.workflow || "light",
-      projectKind: options["project-kind"] || "code",
-      packs: options.pack || [],
-      contextAdvisor: Boolean(options["context-advisor"]),
-      dryRun: Boolean(options["dry-run"]),
-    });
-    if (options.output === "json") {
-      printJson(result);
-    } else {
-      printInitResult(result);
-    }
-    if (result.blocked.length > 0 || result.errors.length > 0) {
-      process.exitCode = 1;
-    }
-    return;
-  }
-
-  if (command === "onboard-existing") {
-    if (options["proposal-file"] && options["proposal-dir"]) {
-      throw new Error("Use either --proposal-file or --proposal-dir, not both.");
-    }
-
-    const result = await onboardExisting({
-      target: options.target || ".",
-      agent: options.agent || "codex",
-      workflow: options.workflow || "light",
-      projectKind: options["project-kind"] || "code",
-      packs: options.pack || [],
-      contextAdvisor: Boolean(options["context-advisor"]),
-    });
-    if (options.output === "json") {
-      printJson(result);
-    } else {
-      printOnboardResult(result);
-    }
-    if (options["proposal-file"]) {
-      await writeProposalFile(options["proposal-file"], renderOnboardProposal(result));
-      console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
-    }
-    if (options["proposal-dir"]) {
-      const proposalPath = await writeProposalDir(options["proposal-dir"], result);
-      console.log(`Proposal written: ${proposalPath}`);
-    }
-    if (options.check && !result.complete) {
-      process.exitCode = 1;
-    }
-    return;
-  }
-
-  if (command === "update-existing") {
-    if (options["proposal-file"] && options["proposal-dir"]) {
-      throw new Error("Use either --proposal-file or --proposal-dir, not both.");
-    }
-    if (options.apply && (options["proposal-file"] || options["proposal-dir"])) {
-      throw new Error("Do not use proposal export with --apply; run dry-run proposal review first.");
-    }
-
-    const result = await updateExisting({
-      target: options.target || ".",
-      agent: options.agent || "codex",
-      workflow: options.workflow || "light",
-      projectKind: options["project-kind"] || "code",
-      packs: options.pack || [],
-      contextAdvisor: Boolean(options["context-advisor"]),
-      apply: Boolean(options.apply),
-      approval: options.approval || "",
-    });
-    if (options.output === "json") {
-      printJson(result);
-    } else {
-      printUpdateResult(result);
-    }
-    if (options["proposal-file"]) {
-      await writeProposalFile(options["proposal-file"], renderUpdateProposal(result));
-      console.log(`Proposal written: ${path.resolve(options["proposal-file"])}`);
-    }
-    if (options["proposal-dir"]) {
-      const proposalPath = await writeProposalDir(
-        options["proposal-dir"],
-        result,
-        renderUpdateProposal,
-        "update-proposal"
-      );
-      console.log(`Proposal written: ${proposalPath}`);
-    }
-    if (options.check && !result.complete) {
-      process.exitCode = 1;
-    }
-    return;
-  }
-
-  if (command === "validate") {
-    const result = await validateGeneratedProject(options.target || ".");
-    if (options.output === "json") {
-      printJson(result);
-    } else if (result.valid) {
-      console.log("Generated project validation passed.");
-    } else {
-      console.error("Generated project validation failed:");
-      for (const error of result.errors) {
-        console.error(`- ${error}`);
+  const wantsJson=argv.includes("--output=json") || argv.some((x,i)=>x==="--output" && argv[i+1]==="json");
+  try {
+    let [command,...rest]=argv;
+    if(!command || command==="--help" || command==="-h") return printHelp();
+    if(command==="help") return printHelp(rest[0]);
+    if(!Object.hasOwn(commandOptions,command)) throw new ProjectError("USAGE",`Unknown command: ${command}`);
+    let options;
+    try { options=parseArgs({args:rest,options:commandOptions[command],strict:true}).values; }
+    catch(error) { throw new ProjectError("USAGE",error.message); }
+    if(options.help) return printHelp(command);
+    validateOptions(options);
+    const selected=Object.fromEntries([["agent",options.agent],["workflow",options.workflow],["projectKind",options["project-kind"]],["packs",options.pack],["skills",options.skill],["contextAdvisor",options["context-advisor"]===undefined ? (options["no-context-advisor"] ? false : undefined) : true],["approvalPolicy",options["approval-policy"]]].filter(([,value])=>value!==undefined));
+    const target=options.target ?? ".";
+    let result;
+    if(command==="list") result={agents,workflows,projectKinds:supportedProjectKinds,packs,skills,approvalPolicies};
+    if(command==="init-new") result=await initNew({target,...selected,dryRun:!options.apply});
+    if(command==="onboard-existing") result=await onboardExisting({target,...selected});
+    if(command==="update-existing") {
+      let reviewedPlan;
+      if(options.apply) {
+        if(!options.approval?.trim()) throw new ProjectError("APPROVAL_REQUIRED","update-existing --apply requires --approval <text>.");
+        if(!options["plan-file"]) throw new ProjectError("PLAN_REQUIRED","--apply requires --plan-file <reviewed.json>.");
+        try {
+          const planPath=path.resolve(options["plan-file"]);
+          safePath(path.dirname(planPath),path.basename(planPath));
+          const planStat=await stat(planPath);
+          if(!planStat.isFile() || planStat.size>1024*1024) throw new Error("plan must be a regular file of at most 1 MiB");
+          const content=await readFile(planPath,"utf8");
+          if(Buffer.byteLength(content)>1024*1024) throw new Error("plan exceeds 1 MiB");
+          reviewedPlan=JSON.parse(content);
+        } catch(error) { throw new ProjectError("INVALID_PLAN",`Cannot read plan: ${error.message}`); }
       }
-      process.exitCode = 1;
+      result=await updateExisting({target,...reviewedPlan?.options,...selected,apply:!!options.apply,approval:options.approval ?? "",adopt:options.adopt ?? reviewedPlan?.options?.adopt ?? false,reviewedPlan});
+      if(options["plan-file"] && !options.apply) result.planFile=await exportFile(options["plan-file"],JSON.stringify(result.plan,null,2)+"\n",result);
     }
-    return;
-  }
-
-  throw new Error(`Unknown command: ${command}`);
-}
-
-function parseOptions(argv) {
-  const options = {};
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
-    if (!arg.startsWith("--")) {
-      throw new Error(`Unexpected argument: ${arg}`);
+    if(command==="validate") result=await validateGeneratedProject(target);
+    if(options["proposal-file"] || options["proposal-dir"]) {
+      const render=command==="update-existing" ? renderUpdateProposal : renderOnboardProposal;
+      const suffix=command==="update-existing" ? "update-proposal" : "onboarding-proposal";
+      const filename=options["proposal-file"] ?? path.join(options["proposal-dir"],path.basename(result.target).replace(/[^a-zA-Z0-9._-]+/g,"-").replace(/^-+|-+$/g,"") || "project",`${new Date().toISOString().replace(/[:.]/g,"-")}-${suffix}.md`);
+      result.proposalPath=await exportFile(filename,render(result),result);
     }
-
-    const key = arg.slice(2);
-    if (key === "dry-run" || key === "check" || key === "context-advisor" || key === "apply") {
-      options[key] = true;
-      continue;
-    }
-
-    const value = argv[index + 1];
-    if (!value || value.startsWith("--")) {
-      throw new Error(`Missing value for --${key}`);
-    }
-    index += 1;
-    if (key === "pack") {
-      options.pack ??= [];
-      options.pack.push(value);
-    } else {
-      options[key] = value;
-    }
-  }
-
-  if (options.agent && !agentModes.includes(options.agent)) {
-    throw new Error(`Unsupported --agent value: ${options.agent}`);
-  }
-  if (options.workflow && !workflows.includes(options.workflow)) {
-    throw new Error(`Unsupported --workflow value: ${options.workflow}`);
-  }
-  if (options.output && !["text", "json"].includes(options.output)) {
-    throw new Error(`Unsupported --output value: ${options.output}`);
-  }
-  if (options["project-kind"] && !acceptedProjectKinds.includes(options["project-kind"])) {
-    throw new Error(`Unsupported --project-kind value: ${options["project-kind"]}`);
-  }
-  if (options.pack) {
-    for (const pack of options.pack) {
-      if (!packs.includes(pack)) {
-        throw new Error(`Unsupported --pack value: ${pack}`);
+    if(options.output==="json") console.log(JSON.stringify(result,null,2));
+    else {
+      if(command==="list") {
+        console.log(`Agents: ${agents.join(", ")}\nWorkflows: ${workflows.join(", ")}\nProject kinds: ${supportedProjectKinds.join(", ")}\nPacks: ${packs.join(", ")}\nSkills: ${skills.join(", ")}`);
+      } else if(command==="init-new") printInitResult(result);
+      else if(command==="onboard-existing") printOnboardResult(result);
+      else if(command==="update-existing") { printUpdateResult(result); console.log(renderUpdateProposal(result)); }
+      else {
+        console.log(result.valid ? "Generated project validation passed." : `Generated project validation failed:\n${result.errors.map(x=>`- ${x}`).join("\n")}`);
+        for(const finding of result.findings.filter(x=>x.severity!=="error")) console.log(`${finding.severity}: ${finding.code}: ${finding.path}: ${finding.explanation}`);
       }
+      if(result.proposalPath) console.log(`Proposal written: ${result.proposalPath}`);
+      if(result.planFile) console.log(`Review plan written: ${result.planFile}`);
     }
-  }
-
-  return options;
-}
-
-function printInitResult(result) {
-  if (result.dryRun) {
-    console.log("Dry run: no files written.");
-  } else if (result.blocked.length > 0 || result.errors.length > 0) {
-    console.log("Init-new blocked: no files written.");
-  } else {
-    console.log("Init-new completed.");
-  }
-  console.log(`Target: ${result.target}`);
-  console.log(`Agent: ${result.agent}`);
-  console.log(`Workflow: ${result.workflow}`);
-  console.log(`Project kind: ${result.projectKind}`);
-  console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
-  console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
-
-  if (result.created.length > 0) {
-    console.log("Files to create:");
-    for (const file of result.created) {
-      console.log(`- ${file}`);
-    }
-  }
-
-  if (result.written.length > 0) {
-    console.log("Files written:");
-    for (const file of result.written) {
-      console.log(`- ${file}`);
-    }
-  }
-
-  if (result.blocked.length > 0) {
-    console.error("Blocked existing files:");
-    for (const file of result.blocked) {
-      console.error(`- ${file}`);
-    }
-  }
-
-  for (const warning of result.warnings) {
-    console.warn(`Warning: ${warning}`);
+    if((command==="validate" && !result.valid) || (command==="init-new" && (result.blocked.length || result.errors.length)) || (options.check && !result.complete)) process.exitCode=1;
+  } catch(error) {
+    const result={error:{code:error.code ?? "INTERNAL_ERROR",message:error.message,details:error.details ?? {}}};
+    if(wantsJson) console.log(JSON.stringify(result,null,2)); else console.error(`${result.error.code}: ${error.message}`);
+    process.exitCode=error.code==="USAGE" ? 2 : 1;
   }
 }
 
-function printHelp() {
-  console.log(`codex-agent-template
-
-Commands:
-  init-new --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--output text|json]
-  onboard-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--dry-run] [--proposal-file <path>|--proposal-dir <path>] [--check] [--output text|json]
-  update-existing --target <path> [--agent codex|claude|codex+claude] [--workflow light|task-first|spec-tdd] [--project-kind code|docs|game-design|no-code] [--pack privacy|external-services|security|test-harness|docs] [--context-advisor] [--proposal-file <path>|--proposal-dir <path>] [--apply --approval <text>] [--check] [--output text|json]
-  validate --target <path> [--output text|json]
-  list [--output text|json]
-`);
+function validateOptions(options) {
+  for(const [name,allowed] of [["agent",agents],["workflow",workflows],["project-kind",acceptedProjectKinds],["output",["text","json"]],["approval-policy",approvalPolicies]]) if(options[name]!==undefined && !allowed.includes(options[name])) throw new ProjectError("USAGE",`Unsupported --${name} value: ${options[name]}`);
+  for(const [name,allowed] of [["pack",packs],["skill",skills]]) if(options[name]?.some(x=>!allowed.includes(x))) throw new ProjectError("USAGE",`Unsupported --${name} value`);
+  if(options.apply && options["dry-run"]) throw new ProjectError("USAGE","--apply and --dry-run cannot be combined.");
+  if(options["context-advisor"] && options["no-context-advisor"]) throw new ProjectError("USAGE","Use only one context advisor flag.");
+  if(options["proposal-file"] && options["proposal-dir"]) throw new ProjectError("USAGE","Use either --proposal-file or --proposal-dir, not both.");
+  if(options.apply && (options["proposal-file"] || options["proposal-dir"])) throw new ProjectError("USAGE","Do not use proposal export with --apply; run dry-run proposal review first.");
+  if(options.approval!==undefined && !options.apply) throw new ProjectError("USAGE","--approval requires --apply.");
+  if(options.apply && options.check) throw new ProjectError("USAGE","--check is read-only and cannot be combined with --apply.");
 }
 
-function printJson(value) {
-  console.log(JSON.stringify(value, null, 2));
+async function exportFile(filename,content,result) {
+  const output=path.resolve(filename), root=path.resolve(result.target);
+  safePath(path.dirname(output),path.basename(output));
+  const rel=path.relative(root,output);
+  const generated=result.plan?.entries?.map(x=>x.path) ?? [...(result.proposedCreates ?? []),...(result.blockedExisting ?? [])];
+  if(!rel.startsWith("..") && !path.isAbsolute(rel) && generated.includes(rel.replaceAll(path.sep,"/"))) throw new ProjectError("UNSAFE_EXPORT","Proposal export cannot replace a target infrastructure file.");
+  await mkdir(path.dirname(output),{recursive:true});
+  await writeFile(output,content,{encoding:"utf8",flag:"wx"});
+  return output;
 }
 
-async function writeProposalFile(proposalFile, markdown) {
-  const outputPath = path.resolve(proposalFile);
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, markdown, "utf8");
-}
-
-async function writeProposalDir(
-  proposalDir,
-  result,
-  renderProposal = renderOnboardProposal,
-  suffix = "onboarding-proposal"
-) {
-  const projectName = sanitizePathSegment(path.basename(result.target)) || "project";
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const outputPath = path.resolve(
-    proposalDir,
-    projectName,
-    `${timestamp}-${suffix}.md`
-  );
-  await mkdir(path.dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, renderProposal(result), "utf8");
-  return outputPath;
-}
-
-function sanitizePathSegment(value) {
-  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
-}
-
-function printOnboardResult(result) {
-  console.log("Onboard-existing proposal: no files written.");
-  console.log(`Target: ${result.target}`);
-  console.log(`Agent: ${result.agent}`);
-  console.log(`Workflow: ${result.workflow}`);
-  console.log(`Project kind: ${result.projectKind}`);
-  console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
-  console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
-
-  console.log("Existing AI files:");
-  printList(result.discovery.existingAiFiles);
-
-  console.log("Detected project files:");
-  printList(result.discovery.detectedProjectFiles);
-
-  console.log("Detected project types:");
-  printList(result.discovery.projectTypes);
-
-  console.log("Project kind suggestion:");
-  console.log(
-    `- ${result.discovery.projectKindSuggestion.kind} (${result.discovery.projectKindSuggestion.confidence})`
-  );
-  console.log("Project kind evidence:");
-  printList(result.discovery.projectKindSuggestion.evidence);
-
-  console.log(`Package manager: ${result.discovery.packageManager || "none"}`);
-
-  console.log(`Advisor status: ${result.discovery.advisorStatus || "none"}`);
-
-  console.log("Advisor artifacts:");
-  printList(result.discovery.advisorArtifacts || []);
-
-  console.log("Detected commands:");
-  if (result.discovery.commands.length === 0) {
-    console.log("- none");
-  } else {
-    for (const command of result.discovery.commands) {
-      console.log(`- ${command.kind}: ${command.command} (${command.confidence})`);
-    }
-  }
-
-  console.log("Suggested verification:");
-  if (result.discovery.suggestedVerification.length === 0) {
-    console.log("- none");
-  } else {
-    for (const command of result.discovery.suggestedVerification) {
-      console.log(`- ${command.kind}: ${command.command} (${command.confidence})`);
-    }
-  }
-
-  console.log("Verification draft:");
-  for (const row of result.verificationDraft) {
-    console.log(`- ${row.check}: ${row.command} (${row.confidence})`);
-  }
-
-  console.log("Proposed files to create:");
-  printList(result.proposedCreates);
-
-  console.log("Blocked existing files:");
-  printList(result.blockedExisting);
-
-  console.log("Configuration issues:");
-  if (result.configurationIssues.length === 0) {
-    console.log("- none");
-  } else {
-    for (const issue of result.configurationIssues) {
-      console.log(`- ${issue.path}: expected ${issue.expected}; actual ${issue.actual}`);
-    }
-  }
-
-  console.log("Recommendations:");
-  printList(result.recommendations);
-
-  console.log("Findings:");
-  if (result.findings.length === 0) {
-    console.log("- none");
-  } else {
-    for (const finding of result.findings) {
-      console.log(`- ${finding.severity}: ${finding.title} - ${finding.detail}`);
-    }
-  }
-
-  console.log(`Complete: ${result.complete ? "yes" : "no"}`);
-}
-
-function printUpdateResult(result) {
-  console.log(result.apply ? "Update-existing apply completed." : "Update-existing proposal: no files written.");
-  console.log(`Target: ${result.target}`);
-  console.log(`Agent: ${result.agent}`);
-  console.log(`Workflow: ${result.workflow}`);
-  console.log(`Project kind: ${result.projectKind}`);
-  console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
-  console.log(`Context advisor: ${result.contextAdvisor ? "manual" : "disabled"}`);
-
-  console.log("Existing template metadata:");
-  if (!result.existingConfig.exists) {
-    console.log("- none");
-  } else if (!result.existingConfig.valid) {
-    console.log(`- invalid .agent-template.json: ${result.existingConfig.error}`);
-  } else {
-    const config = result.existingConfig.config;
-    console.log(`- agent: ${config.agent || "unknown"}`);
-    console.log(`- workflow: ${config.workflow || "unknown"}`);
-    console.log(`- projectKind: ${config.projectKind || "code"}`);
-    console.log(`- generatedAt: ${config.generatedAt || "unknown"}`);
-  }
-
-  console.log("Missing files to create:");
-  printList(result.missingCreates);
-
-  console.log("Existing files to review for update:");
-  printList(result.updateCandidates);
-
-  console.log("Unchanged generated files:");
-  printList(result.unchanged);
-
-  if (result.apply) {
-    console.log("Files written:");
-    printList(result.written);
-    console.log(`Approval: ${result.approval}`);
-  }
-
-  console.log("Recommendations:");
-  printList(result.recommendations);
-
-  console.log(`Complete: ${result.complete ? "yes" : "no"}`);
-}
-
-function printList(items) {
-  if (items.length === 0) {
-    console.log("- none");
-    return;
-  }
-
-  for (const item of items) {
-    console.log(`- ${item}`);
-  }
+function printHelp(command) {
+  if(command && !Object.hasOwn(commandOptions,command)) throw new ProjectError("USAGE",`Unknown command: ${command}`);
+  console.log("codex-agent-template\n\nPreview by default. Use init-new --apply to create; update-existing --apply requires --approval and a reviewed --plan-file.\nExit codes: 0 success, 1 failed validation/conflict/write, 2 invalid usage.\n");
+  for(const name of command ? [command] : Object.keys(commandOptions)) console.log(`${name}: ${Object.entries(commandOptions[name]).map(([key,value])=>`--${key}${value.type==="string" ? " <value>" : ""}`).join(" ")}`);
 }

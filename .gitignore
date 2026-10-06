@@ -7,11 +7,14 @@ coverage/
 
 # Local agent overrides and sandbox notes
 AGENTS.local.md
+AGENTS.override.md
 CLAUDE.local.md
 .agent-local/
 .codex-local/
 .claude-local/
 .local/
+.agent-template-backups/
+.agent-template.lock
 
 # Temporary files
 *.tmp

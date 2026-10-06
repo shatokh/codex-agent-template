@@ -1,0 +1,9 @@
+# Local instruction files
+
+Codex automatically discovers `AGENTS.override.md` before `AGENTS.md` in the same directory. The override replaces that directory's base instructions. Keep required shared rules in the override when using one; otherwise they are not loaded. `AGENTS.local.md` is a legacy ignored name, not a native automatically loaded Codex file.
+
+Claude uses `CLAUDE.local.md` for personal project instructions. Codex and Claude load instructions differently; do not assume that a private filename works in both. This template preserves `CLAUDE.md` with `@AGENTS.md` in combined mode for compatibility. Recent Claude Code versions can load AGENTS directly under specific conditions; check your runtime's documentation before removing the import.
+
+Keep private files out of version control. Do not ignore a shared scoped override merely because it has the same filename as a personal override; adjust ignore rules intentionally if your team shares one.
+
+Skills load from `.agents/skills` for Codex and `.claude/skills` for Claude. Combined mode generates both from the same template source. The context advisor is manually invoked; grill-me supports explicit invocation and relevant automatic selection.

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:codex-agent-template:config:1",
+  "title": "Agent template configuration v1",
+  "type": "object",
+  "required": ["schemaVersion", "template", "version", "agent", "workflow", "projectKind", "packs", "skills", "contextAdvisor", "approvalPolicy", "generatedAt"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "template": { "const": "codex-agent-template" },
+    "version": { "type": "string" },
+    "agent": { "enum": ["codex", "claude", "codex+claude"] },
+    "workflow": { "enum": ["light", "task-first", "spec-tdd"] },
+    "projectKind": { "enum": ["code", "docs", "game-design", "no-code"] },
+    "packs": { "type": "array", "uniqueItems": true, "items": { "enum": ["privacy", "external-services", "security", "test-harness", "docs"] } },
+    "skills": { "type": "array", "uniqueItems": true, "items": { "enum": ["grill-me", "clean-chat-handoff", "feature-planner", "review-agent"] } },
+    "contextAdvisor": { "type": "boolean" },
+    "approvalPolicy": { "enum": ["conservative", "risk-based"] },
+    "generatedAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+  },
+  "additionalProperties": false
+}

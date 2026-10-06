@@ -31,9 +31,13 @@ ${renderList(result.unchanged)}
 
 ${renderList(result.recommendations)}
 
+## Content Diffs
+
+${(result.plan?.entries || []).filter(entry => entry.diff).map(entry => `### ${entry.path} (${entry.status})\n\n${entry.reason || ""}\n\n\`\`\`diff\n${entry.diff}\`\`\``).join("\n\n") || "No content differences."}
+
 ## Next Step
 
-Review this proposal before applying updates. The current command is dry-run only.
+Review the diffs and conflicts. Save the JSON plan with --plan-file, then apply that same plan after approval. A changed file or template invalidates the plan.
 `;
 }
 
