@@ -1,12 +1,21 @@
 # Active implementation plan
 
-Updated: 2026-10-07. Current version: 0.4.0.
+Updated: 2026-10-07. Current version: 0.5.0.
 
 The user approved all nine points of [the upgrade proposal](upgrade-proposal-2026-10-06.md), plus grill-me for consequential disputed decisions. [ADR 0002](../decisions/0002-approved-reliability-and-skills.md) records the new scope. The original bootstrap analysis is preserved in [the archive](archive/implementation-plan-2026-08-04.md).
 
 The user subsequently approved the first stage of [technology-agnostic artifacts](technology-agnostic-artifacts-proposal.md). [ADR 0003](../decisions/0003-technology-agnostic-artifacts.md) records its boundaries. See [the catalog](../ai/artifact-catalog.md) for selection and contracts.
 
-The user then requested commit/push and the next stage. [ADR 0004](../decisions/0004-specialized-workflows.md) records the specialized workflows and documentation researcher. Presets and optional document-record templates remain later-stage options.
+The user then requested commit/push and the next stage. [ADR 0004](../decisions/0004-specialized-workflows.md) records the specialized workflows and documentation researcher. The continued stage adds presets and optional record templates; [ADR 0005](../decisions/0005-presets-and-record-templates.md) records its selection and compatibility contracts.
+
+## Implemented selection/record stage (0.5)
+
+1. Added essential/review/maintenance/architecture presets as skill-only shortcuts. Explicit skills extend a preset; roles and other settings remain independent. Config/plans save resolved lists, not preset names. Update replaces only the base skills when a preset is supplied and preserves omitted independent settings.
+2. Added explicitly selected project-context/investigation/decision/migration/verification-result reusable forms with a conditional guide/root link. Defaults remain empty and generation creates no completed records. Existing project formats remain preferred.
+3. Extended schema-v1 optional recordTemplates, strict CLI/list/help, init/onboarding/update results and recommendations, doctor/reference coverage, and extracted package smoke. Custom edits conflict, deselection retains files, and old metadata upgrades only through reviewed apply.
+4. Added focused regression fixtures for selection boundaries, preview/apply/replay, stale plans, existing custom forms, missing links, and legacy configuration. No native role format, installed skill body, runtime dependency, or permissions changed.
+
+Current local checks: 79 tests, project validator, and extracted-package smoke (76 bundled files). Review/evidence limits remain recorded in [verification evidence](../evals/technology-agnostic-artifacts.md). Remote CI and new model sessions are not claimed complete.
 
 ## Implemented specialized stage (0.4)
 
@@ -23,7 +32,7 @@ The user then requested commit/push and the next stage. [ADR 0004](../decisions/
 4. Integrated roles with optional schema-v1 metadata, CLI/list/onboarding, role/reference/policy diagnostics, saved plans, and existing conflict/hash/recovery protections. Default selection remains empty; deselected files remain available until separately removed/disabled.
 5. Added application/CLI/library/docs/no-code generation fixtures across all three modes, package smoke for roles, and additional behavioral scenarios selectable through eval --skill. Real model evals and native delegate execution are not claimed complete.
 
-The 0.3 stage passed 66 tests and discovered seven core skills. Current 0.4 checks pass: 71 tests, project validator, extracted-package smoke (69 package files), independent TOML parsing of four roles, and native Codex 0.160.1 discovery of all twelve skills with zero errors. See [verification evidence](../evals/technology-agnostic-artifacts.md); native delegate loading/effective policies and live Claude behavior remain unverified.
+The 0.3 stage passed 66 tests and discovered seven core skills. The 0.4 stage passed 71 tests, project validator, extracted-package smoke (69 package files), independent TOML parsing of four roles, and native Codex 0.160.1 discovery of all twelve skills with zero errors. See [verification evidence](../evals/technology-agnostic-artifacts.md); native delegate loading/effective policies and live Claude behavior remain unverified.
 
 ## Objective
 

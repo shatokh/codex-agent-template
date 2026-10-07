@@ -1,0 +1,26 @@
+# Migration Plan Template
+
+Use for a transition requiring a durable staged plan. Planning and recording approval do not authorize additional execution or external targets.
+
+## Transition and scope
+
+State the current/target versions or formats, affected content/consumers, authorized scope, applicable revision, and known constraints. Mark unknown inventory and volume explicitly.
+
+## Invariants and coexistence
+
+Describe what must survive transformation and which readers/writers can coexist. Identify any consistency cost or old/new incompatibility; do not assume dual writes or a compatibility layer is needed.
+
+## Stages and stop conditions
+
+| Stage/action | Prerequisites | Acceptance evidence | Stop condition | Responsible party if known |
+| --- | --- | --- | --- | --- |
+
+Include preparation, representative trial, cutover, and retirement where relevant. Thresholds must come from requirements or be marked proposed. Record executed actions separately from planned actions.
+
+## Recovery limits
+
+Identify lossy/irreversible steps and the point after which old-version rollback is unsafe. Separate rollback, tested restore, forward repair, and reconciliation. Account for new writes/content after cutover; a backup alone does not establish recovery.
+
+## Readiness and unresolved prerequisites
+
+Tie readiness to actual transformation, consumer, and recovery evidence. Leave unsupported stages unready and name the next required check. Do not infer a database, service, maintenance window, or universal rollback strategy.

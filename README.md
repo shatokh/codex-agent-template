@@ -1,6 +1,6 @@
 # codex-agent-template
 
-Reviewable AI-agent bootstrap for Codex, Claude, and Codex+Claude. Version 0.4 adds contract review, safe refactoring, migration planning, documentation sync, release checks, and a documentation research role to the technology-agnostic catalog and guarded bootstrap/update CLI.
+Reviewable AI-agent bootstrap for Codex, Claude, and Codex+Claude. Version 0.5 adds skill presets and explicitly selected record templates to the technology-agnostic catalog and guarded bootstrap/update CLI.
 
 Requires Node.js 22+ and no third-party runtime packages. Windows and Linux CI cover Node 24; a Linux job also covers Node 22. The package remains private.
 
@@ -54,6 +54,8 @@ Proposal/plan exports use exclusive creation, reject infrastructure paths, and d
 - Packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`, `compatibility`, `reliability`, `architecture`; repeat `--pack`.
 - Starter skills: `grill-me`, `clean-chat-handoff`, `feature-planner`, `review-agent`, `repo-discovery`, `bug-investigator`, `verify-change`, `contract-review`, `safe-refactor`, `migration-planner`, `docs-sync`, `release-check`; repeat `--skill`.
 - Roles: `repo-scout`, `change-reviewer`, `change-verifier`, `docs-researcher`; repeat `--role`. Required workflow skills are included automatically. `--agent` still selects the runtime.
+- Skill presets: `essential`, `review`, `maintenance`, `architecture`; select one `--preset`. Additional `--skill` flags extend that preset. Roles, packs, workflow, and permissions stay independently selected.
+- Record templates: `project-context`, `investigation`, `decision`, `migration`, `verification-result`; repeat `--record-template`. Only selected templates and their guide are generated, without completed records.
 - `--context-advisor`: opt-in manual advisor; `--no-context-advisor` disables its generation in future plans.
 - `--approval-policy conservative|risk-based`: conservative is the default; both preserve already granted approval within its scope.
 
@@ -61,7 +63,7 @@ Root rules distinguish workflows and link selected packs/skills with usage condi
 
 Discovery reads at most 32 files, 32 KiB per file, 192 KiB in total, with bounded directory enumeration. It checks known root manifests, focused workspace packages, README headings, and simple CI command evidence. It does not execute discovered commands or read `.env` contents. CI evidence and inferred commands require human confirmation. Complex workspace patterns or CI scripts may need manual discovery.
 
-The versioned config format is documented in [config.schema.json](schemas/config.schema.json). The optional `roles` field preserves compatibility with version 0.2/schema-v1 metadata. Legacy configurations are checked with compatibility warnings; no automatic migration is performed.
+The versioned config format is documented in [config.schema.json](schemas/config.schema.json). Optional `roles` and `recordTemplates` preserve compatibility with older schema-v1 metadata. Presets expand into ordinary skills and are not stored as config fields. Legacy configurations are checked with compatibility warnings; no automatic migration is performed.
 
 ## Technology-agnostic workflows and roles
 
@@ -75,6 +77,19 @@ node bin/codex-agent-template.mjs init-new --target .local/maintenance-example -
 Review preview and repeat with `--apply` to create. Codex roles use `.codex/agents/*.toml`; Claude uses `.claude/agents/*.md`. Both come from shared role bodies. Generation does not enable delegation automatically or change the parent model/permissions. Verifier returns a plan when safe execution is unavailable. Generated `docs/ai/delegation.md` explains runtime-specific limits.
 
 `docs-researcher` uses local evidence plus authorized primary-source research matched to the project's versions. It has no execution/edit mandate or mandatory external provider; unavailable access is an evidence gap. `release-check` assesses a concrete candidate; publication needs authorization for that action and target, while existing authorization remains valid within its scope.
+
+## Presets and record templates
+
+```sh
+node bin/codex-agent-template.mjs init-new --target .local/preset-example --agent codex+claude --preset maintenance --skill contract-review --role docs-researcher --record-template investigation --record-template verification-result
+node bin/codex-agent-template.mjs update-existing --target ../project --preset review --record-template decision --plan-file .local/preset-review.json
+# Review the expanded skills, file diffs, and conflicts before applying:
+node bin/codex-agent-template.mjs update-existing --target ../project --apply --approval "reviewed" --plan-file .local/preset-review.json
+```
+
+Init previews by default. During update, `--preset` selects a new base skill list; supplied `--skill` flags extend it, and retained role dependencies are added automatically. Existing skills outside that resolved list are deselected. Roles, packs, record templates, workflow, advisor, and approval policy remain inherited unless their own flags are supplied. Without a preset, existing repeated selection flags retain their replacement behavior. Saved plans contain expanded lists, not a live preset reference. Deselection leaves files on disk and is not runtime revocation.
+
+Record templates live under `docs/ai/templates/` and are linked from the conditional `docs/ai/record-templates.md` guide. They are reusable forms, not verified facts or approval records. Create a concrete record only when useful or requested, using the existing project format when available. [Selection and API examples](docs/ai/presets-and-records.md) explain the full contract.
 
 Selected arrays replace the previous selection; omitted update settings are preserved. Deselected artifacts remain on disk, and native runtimes may still discover them. Deselecting a role does not revoke it: disable/remove retained files only through separate review. Existing user-edited role files become update conflicts.
 
@@ -109,6 +124,7 @@ node scripts/eval-skills.mjs --skill bug-investigator --scenario bug-unreproduce
 - [Scope decision 0002](docs/decisions/0002-approved-reliability-and-skills.md)
 - [Artifact scope decision 0003](docs/decisions/0003-technology-agnostic-artifacts.md)
 - [Specialized workflow decision 0004](docs/decisions/0004-specialized-workflows.md)
+- [Preset and record-template decision 0005](docs/decisions/0005-presets-and-record-templates.md)
 - [Technology-agnostic artifact catalog](docs/ai/artifact-catalog.md)
 - [Portable cookbook](docs/cookbooks/manual-run-cookbook.md)
 - [Research](docs/research/internet-best-practices.md)

@@ -9,6 +9,7 @@ Packs: \`${result.packs.length === 0 ? "none" : result.packs.join(", ")}\`
 Context advisor: \`${result.contextAdvisor ? "manual" : "disabled"}\`
 Skills: \`${result.skills?.join(", ") || "none"}\`
 Roles: \`${result.roles?.join(", ") || "none"}\`
+Record templates: \`${result.recordTemplates?.join(", ") || "none"}\`
 Approval policy: \`${result.approvalPolicy || "conservative"}\`
 Complete: \`${result.complete ? "yes" : "no"}\`
 

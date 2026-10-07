@@ -26,14 +26,16 @@ export async function initNew({ target, dryRun = true, ...options }) {
 export async function buildGeneratedFilePlan({target, discovery, ...options}) {
   const targetRoot=path.resolve(target), config=normalizeConfig(options);
   discovery ??= discoverExisting(targetRoot);
-  const {agent,workflow,projectKind,packs,skills,roles,contextAdvisor,approvalPolicy,generatedAt}=config;
+  const {agent,workflow,projectKind,packs,skills,roles,recordTemplates,contextAdvisor,approvalPolicy,generatedAt}=config;
   const roots=skillRoots(agent), selectedSkills=[...skills,...(contextAdvisor ? ["context-artifact-advisor"] : [])];
   const packTriggers={privacy:"handling personal or private data","external-services":"using paid APIs, production accounts, or external services",security:"changing authentication, permissions, dependencies, or secret handling","test-harness":"setting up fixtures, tests, playtests, or repeatable verification",docs:"changing documented setup, commands, or public behavior",compatibility:"changing a consumer-facing contract or persisted format",reliability:"changing state, resources, failure handling, or recovery",architecture:"changing component boundaries or major dependencies"};
   const context={projectName:markdownText(path.basename(targetRoot)),projectSummary:markdownText(discovery.summary),agent,workflow,projectKind,projectKindLabel:projectKindLabel(projectKind),generatedAt,
     workflowRules:workflowRules(workflow,projectKind),approvalRules:approvalPolicy==="risk-based" ? "- Continue explicitly authorized, reversible work within scope. Plan and seek approval for destructive operations, production changes, or consequential unresolved scope.\n- Reuse approval for its agreed scope; do not request it again for each implementation step." : "- For meaningful code, infrastructure, content, rules, assets, dependency, or behavior changes, plan first and wait for explicit approval unless that scope is already approved.\n- Continue work within the agreed scope without requesting approval again for each step.",
     optionalGuidance:packs.map(name=>`- When ${packTriggers[name]}, use [${name} guidance](docs/ai/packs/${name}.md).`).join("\n") + (selectedSkills.length ? "\n- Available workflows: " + selectedSkills.map(name=>`[${name}](${roots[0]}/${name}/SKILL.md)`).join(", ")+"." : "") + (skills.includes("grill-me") ? "\n- Use grill-me for a contested consequential decision with unresolved evidence; let settled routine choices proceed." : "") + (roles.length ? "\n- Available delegated roles: " + roles.flatMap(name=>rolePaths(agent,name).map(filename=>`[${name} (${filename.startsWith(".codex") ? "Codex" : "Claude"})](${filename})`)).join(", ")+".\n- Delegate only when requested or authorized by applicable instructions; installation is not authorization. Follow [delegation boundaries](docs/ai/delegation.md)." : ""),
+    recordTemplateLinks:recordTemplates.map(name=>`- [${name}](templates/${name}.md)`).join("\n"),
     verificationTableRows:renderVerificationRows(projectKind,discovery), verificationGuidance:verificationGuidanceForProjectKind(projectKind),
     configJson:JSON.stringify({template:"codex-agent-template",version:templateVersion,schemaVersion,...config},null,2)};
+  if(recordTemplates.length) context.optionalGuidance += "\n- When a durable record helps the task, prefer the existing project format or these [selected record templates](docs/ai/record-templates.md). Templates do not require creating records.";
   const files=[];
   async function render(relativePath,templateName) {
     const template=await readFile(path.join(templatesRoot,templateName),"utf8");
@@ -50,6 +52,10 @@ export async function buildGeneratedFilePlan({target, discovery, ...options}) {
   if(workflow==="task-first") await render("docs/tasks/TEMPLATE.md","docs/tasks/TEMPLATE.md.tmpl");
   if(workflow==="spec-tdd") for(const name of ["specs","ai-change-records"]) await render(`docs/${name}/TEMPLATE.md`,`docs/${name}/TEMPLATE.md.tmpl`);
   for(const name of packs) await render(`docs/ai/packs/${name}.md`,`docs/ai/packs/${name}.md.tmpl`);
+  if(recordTemplates.length) {
+    await render("docs/ai/record-templates.md","docs/ai/record-templates.md.tmpl");
+    for(const name of recordTemplates) await render(`docs/ai/templates/${name}.md`,`docs/ai/templates/${name}.md.tmpl`);
+  }
   if(roles.length) {
     files.push(...await buildRoleFiles(targetRoot,agent,roles));
     await render("docs/ai/delegation.md","docs/ai/delegation.md.tmpl");

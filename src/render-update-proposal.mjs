@@ -9,6 +9,7 @@ Packs: \`${result.packs.length === 0 ? "none" : result.packs.join(", ")}\`
 Context advisor: \`${result.contextAdvisor ? "manual" : "disabled"}\`
 Skills: \`${result.skills?.join(", ") || "none"}\`
 Roles: \`${result.roles?.join(", ") || "none"}\`
+Record templates: \`${result.recordTemplates?.join(", ") || "none"}\`
 Complete: \`${result.complete ? "yes" : "no"}\`
 
 No target files were written by this proposal.

@@ -15,6 +15,7 @@ The v1 scope is limited to Codex, Claude, and Codex+Claude modes.
 - The approved 0.2 scope includes guarded updates, manual context advisor, and opt-in starter skills. Keep hooks, session capture, automatic merge, and plugin packaging in backlog.
 - The approved 0.3 stage adds technology-agnostic core skills, opt-in roles, and conditional packs; see docs/ai/artifact-catalog.md. Role installation does not authorize delegation.
 - The approved 0.4 stage adds five specialized workflows and docs-researcher; presets and optional record templates remain later-stage options.
+- The approved 0.5 stage adds skill-only presets and explicitly selected record templates; default generation stays compact.
 - Do not overwrite generated target-project files by default; new CLI behavior must prefer dry-run and reviewable proposals.
 - Keep discovery bounded and avoid loading entire repositories when focused evidence is enough.
 - Keep verification adaptive; simple projects should not receive heavy test matrices.

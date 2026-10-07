@@ -21,3 +21,5 @@ Claude's documented tool allowlists support the research tool selection; actual 
 ## Remaining scope
 
 Presets and optional document-record templates are later-stage options. Hooks, session capture, automatic merge/deletion, plugin packaging, additional adapters, and release automation/publication remain outside this stage. Commit/push for these two implementation stages was explicitly requested by the user.
+
+Follow-up: presets and selectable record forms were subsequently implemented in 0.5; see [ADR 0005](0005-presets-and-record-templates.md).

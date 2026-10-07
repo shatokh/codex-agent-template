@@ -1,6 +1,6 @@
 # Technology-agnostic artifact verification
 
-Date: 2026-10-07. Scope: the approved core (0.3) and specialized workflows/researcher (0.4).
+Date: 2026-10-07. Scope: the approved core (0.3), specialized workflows/researcher (0.4), and presets/record forms (0.5).
 
 ## Deterministic evidence
 
@@ -11,6 +11,10 @@ Checks cover opt-in defaults, role-to-skill dependencies, root/reference reachab
 The role doctor accepts the generated flat quoted TOML and generated YAML field set. It rejects widened role defaults and missing workflow links. This is not a general-purpose TOML/YAML parser or a proof of runtime-enforced isolation.
 
 Local 0.4 verification passed: `node --test` (71 tests), `node scripts/validate-project.mjs`, and `node scripts/check-package.mjs`. No CI or model-session results are implied by these local checks.
+
+Local 0.5 verification passes 79 tests, the project validator, and extracted-package smoke (76 files). Eight added regression tests cover skill-only presets with explicit additions, retained role dependencies, independent settings, empty defaults, selected forms across supported modes/project kinds, config and saved-plan expansion, CLI overrides before plan inheritance, stale apply rejection, replay, custom-form conflicts, deselection retention, missing guide links, and schema-v1 configs omitting recordTemplates. The package fixture generates all forms and skills through a preset plus explicit additions from an unrelated cwd. No populated records are generated.
+
+This stage changes deterministic selection and documentation generation; installed skill bodies and native role formats are unchanged. Native discovery and runtime limitations below are the 0.4 evidence, not a newly repeated 0.5 runtime/model evaluation. Remote CI, live Claude, native delegate execution, and model-backed scenarios remain unclaimed.
 
 All four repository Codex role files also parsed successfully with Python's standard-library tomllib, preserving their four fields and read-only defaults. This independent syntax check does not establish native agent discovery.
 

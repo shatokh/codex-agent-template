@@ -1,5 +1,5 @@
 import path from "node:path";
-import { normalizeConfig, ProjectError, readConfig } from "./config.mjs";
+import { expandPreset, normalizeConfig, ProjectError, readConfig } from "./config.mjs";
 import { buildGeneratedFilePlan } from "./init-new.mjs";
 import { applyEntries, checkReviewedPlan, currentContent, extendGitignore, hash, makeEntry, manifestFile, manifestName, readManifest, reviewPlan, safePath } from "./file-plan.mjs";
 
@@ -9,7 +9,7 @@ export async function updateExisting({target,apply=false,approval="",adopt=false
   currentContent(targetRoot,".agent-template.json");
   const existingConfig=readConfig(safePath(targetRoot,".agent-template.json"));
   if(existingConfig.exists && !existingConfig.valid) throw new ProjectError("INVALID_CONFIG",`Existing configuration is invalid: ${existingConfig.error}`);
-  const config=normalizeConfig({...existingConfig.config,...Object.fromEntries(Object.entries(overrides).filter(([,value])=>value!==undefined))});
+  const config=normalizeConfig({...existingConfig.config,...expandPreset(Object.fromEntries(Object.entries(overrides).filter(([,value])=>value!==undefined)))});
   const manifest=readManifest(targetRoot);
   const expected=await buildGeneratedFilePlan({target:targetRoot,...config});
   const entries=[];

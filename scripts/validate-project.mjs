@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { validateSkill } from "../src/validate-generated-project.mjs";
 import { skills, templateVersion } from "../src/config.mjs";
-import { roleDefinitions, roles, packs } from "../src/config.mjs";
+import { roleDefinitions, roles, packs, presets, presetDefinitions, recordTemplates } from "../src/config.mjs";
 import { buildRoleFiles, validateRole } from "../src/roles.mjs";
 
 const requiredFiles = [
@@ -15,6 +15,8 @@ const requiredFiles = [
   "src/config.mjs",
   "src/roles.mjs",
   "templates/roles/catalog.json",
+  "templates/presets/catalog.json",
+  "templates/base/docs/ai/record-templates.md.tmpl",
   "templates/base/docs/ai/delegation.md.tmpl",
   "src/file-plan.mjs",
   "src/bounded-discovery.mjs",
@@ -28,6 +30,9 @@ const requiredFiles = [
   "docs/decisions/0002-approved-reliability-and-skills.md",
   "docs/decisions/0003-technology-agnostic-artifacts.md",
   "docs/decisions/0004-specialized-workflows.md",
+  "docs/decisions/0005-presets-and-record-templates.md",
+  "docs/ai/presets-and-records.md",
+  "test/presets-records.test.mjs",
   "docs/ai/artifact-catalog.md",
   "src/discover-existing.mjs",
   "src/init-new.mjs",
@@ -74,6 +79,11 @@ for (const name of skills) {
   else validateSkill(`${name}/SKILL.md`,readFileSync(filename,"utf8"),(severity,code,file,explanation)=>{if(severity==="error") missing.push(`${file}: ${code} ${explanation}`);});
 }
 for (const name of packs) if (!existsSync(`templates/base/docs/ai/packs/${name}.md.tmpl`)) missing.push(`pack template: ${name}`);
+for (const name of recordTemplates) if (!existsSync(`templates/base/docs/ai/templates/${name}.md.tmpl`)) missing.push(`record template: ${name}`);
+for (const name of presets) {
+  const definition = presetDefinitions[name];
+  if (typeof definition.description !== "string" || !definition.description.trim() || !Array.isArray(definition.skills) || definition.skills.some(skill => !skills.includes(skill)) || new Set(definition.skills).size !== definition.skills.length || Object.keys(definition).some(key => !["description", "skills"].includes(key))) missing.push(`invalid preset: ${name}`);
+}
 if (JSON.stringify(Object.keys(roleDefinitions)) !== JSON.stringify(roles)) missing.push("role catalog/schema mismatch");
 for (const name of roles) {
   if (!existsSync(`templates/roles/${name}.md`)) missing.push(`role template: ${name}`);

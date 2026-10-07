@@ -10,6 +10,7 @@ export function printInitResult(result) {
   console.log(`Agent: ${result.agent}`);
   console.log(`Skills: ${result.skills?.join(", ") || "none"}`);
   console.log(`Roles: ${result.roles?.join(", ") || "none"}`);
+  console.log(`Record templates: ${result.recordTemplates?.join(", ") || "none"}`);
   console.log(`Workflow: ${result.workflow}`);
   console.log(`Project kind: ${result.projectKind}`);
   console.log(`Packs: ${result.packs.length === 0 ? "none" : result.packs.join(", ")}`);
@@ -45,6 +46,7 @@ export function printOnboardResult(result) {
   console.log("Onboard-existing proposal: no files written.");
   console.log(`Skills: ${result.skills?.join(", ") || "none"}`);
   console.log(`Roles: ${result.roles?.join(", ") || "none"}`);
+  console.log(`Record templates: ${result.recordTemplates?.join(", ") || "none"}`);
   console.log(`Target: ${result.target}`);
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);
@@ -132,6 +134,7 @@ export function printUpdateResult(result) {
   console.log(result.apply ? "Update-existing apply completed." : "Update-existing proposal: no files written.");
   console.log(`Skills: ${result.skills?.join(", ") || "none"}`);
   console.log(`Roles: ${result.roles?.join(", ") || "none"}`);
+  console.log(`Record templates: ${result.recordTemplates?.join(", ") || "none"}`);
   console.log(`Target: ${result.target}`);
   console.log(`Agent: ${result.agent}`);
   console.log(`Workflow: ${result.workflow}`);

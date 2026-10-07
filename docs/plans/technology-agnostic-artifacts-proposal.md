@@ -1,6 +1,6 @@
 # Предложение: артефакты без привязки к языку и стеку
 
-Дата предложения: 2026-10-06. Первый этап одобрен 2026-10-07 и реализован в 0.3.0: базовые skills, три роли, условные packs и проверки. По запросу следующего этапа в 0.4.0 добавлены пять специализированных skills и docs-researcher. Presets и опциональные шаблоны записей остаются следующими этапами. Текущий статус: [implementation plan](implementation-plan.md), [ADR 0003](../decisions/0003-technology-agnostic-artifacts.md), [ADR 0004](../decisions/0004-specialized-workflows.md).
+Дата предложения: 2026-10-06. Первый этап одобрен 2026-10-07 и реализован в 0.3.0: базовые skills, три роли, условные packs и проверки. В 0.4.0 добавлены пять специализированных skills и docs-researcher; по запросу продолжения в 0.5.0 добавлены presets и опциональные шаблоны записей. Текущий статус: [implementation plan](implementation-plan.md), [ADR 0003](../decisions/0003-technology-agnostic-artifacts.md), [ADR 0004](../decisions/0004-specialized-workflows.md), [ADR 0005](../decisions/0005-presets-and-record-templates.md).
 
 ## Цель и принцип
 

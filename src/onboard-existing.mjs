@@ -10,6 +10,8 @@ export async function onboardExisting({
   packs = [],
   skills = [],
   roles = [],
+  preset,
+  recordTemplates = [],
   approvalPolicy = "conservative",
   contextAdvisor = false,
   projectKind = "code",
@@ -24,6 +26,8 @@ export async function onboardExisting({
     packs,
     skills,
     roles,
+    preset,
+    recordTemplates,
     approvalPolicy,
     contextAdvisor,
     discovery,
@@ -31,6 +35,7 @@ export async function onboardExisting({
   });
   skills = plan.skills;
   roles = plan.roles;
+  recordTemplates = plan.recordTemplates;
   const configurationIssues = buildConfigurationIssues({
     discovery,
     agent,
@@ -40,6 +45,7 @@ export async function onboardExisting({
     projectKind: normalizedProjectKind,
     skills,
     roles,
+    recordTemplates,
     approvalPolicy,
   });
   const findings = buildFindings({
@@ -64,6 +70,7 @@ export async function onboardExisting({
     contextAdvisor,
     skills,
     roles,
+    recordTemplates,
     approvalPolicy,
     discovery,
     proposedCreates: plan.created,
@@ -84,6 +91,7 @@ export async function onboardExisting({
       contextAdvisor,
       skills,
       roles,
+      recordTemplates,
       validation,
     }),
     findings: [...findings, ...configurationIssuesToFindings(configurationIssues), ...contentFindings,
@@ -103,6 +111,7 @@ function buildRecommendations({
   contextAdvisor,
   skills,
   roles,
+  recordTemplates,
   validation,
 }) {
   const projectKindMismatch =
@@ -145,6 +154,7 @@ function buildRecommendations({
         contextAdvisor,
         skills,
         roles,
+        recordTemplates,
       })}`
     );
   }
@@ -168,6 +178,7 @@ function buildRecommendedOnboardCommand({
   contextAdvisor,
   skills = [],
   roles = [],
+  recordTemplates = [],
 }) {
   const args = [
     "node",
@@ -188,6 +199,7 @@ function buildRecommendedOnboardCommand({
   }
   for (const skill of skills) args.push("--skill", skill);
   for (const role of roles) args.push("--role", role);
+  for (const name of recordTemplates) args.push("--record-template", name);
 
   if (contextAdvisor) {
     args.push("--context-advisor");
@@ -214,6 +226,7 @@ function buildConfigurationIssues({
   projectKind,
   skills = [],
   roles = [],
+  recordTemplates = [],
   approvalPolicy = "conservative",
 }) {
   if (!discovery.agentTemplate.exists) {
@@ -237,7 +250,7 @@ function buildConfigurationIssues({
   compareMetadata(issues, "projectKind", projectKind, config.projectKind || "code");
   compareMetadata(issues, "contextAdvisor", contextAdvisor, config.contextAdvisor);
   compareMetadata(issues, "approvalPolicy", approvalPolicy, config.approvalPolicy || "conservative");
-  for (const [name, selected] of [["skills", skills], ["roles", roles]]) {
+  for (const [name, selected] of [["skills", skills], ["roles", roles], ["recordTemplates", recordTemplates]]) {
     const actual = config[name] || [];
     if (JSON.stringify([...selected].sort()) !== JSON.stringify([...actual].sort())) issues.push({path:".agent-template.json",expected:`${name}=${selected.join(", ")}`,actual:`${name}=${actual.join(", ")}`});
   }

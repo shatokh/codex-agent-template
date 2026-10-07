@@ -1,6 +1,6 @@
 # Technology-agnostic artifact catalog
 
-Version 0.4 includes seven core and five specialized skills, four opt-in roles, and eight conditional packs. Workflows use actual repository evidence instead of assuming a language, toolchain, architecture, source directory, or executable test suite.
+Version 0.5 includes twelve skills, four opt-in roles, eight conditional packs, four skill presets, and five selectable record templates. Workflows use actual repository evidence instead of assuming a language, toolchain, architecture, source directory, or executable test suite.
 
 ## Skills
 
@@ -63,8 +63,10 @@ Selected arrays replace their previous selection when supplied; omitted settings
 
 The roles property is optional in schema v1 so version 0.2 configurations remain readable. New generation writes it explicitly; changing version/configuration still requires reviewed apply.
 
-## Next stages
+## Presets and records
 
-Presets and document-record templates from the proposal remain later-stage options. Concrete task/decision/investigation records use existing project formats and are created only when requested or useful within authorized work. Default generation still creates no starter skill, role, or pack.
+Select one `--preset essential|review|maintenance|architecture` to expand a skill set; individual `--skill` flags extend it. Presets never select roles, packs, record templates, a workflow, or permissions. Update replaces the base skill selection while inheriting unrelated omitted settings and resolving role dependencies. Plans/config store actual skills, not preset names. See [selection details](presets-and-records.md).
 
-See [core scope decision](../decisions/0003-technology-agnostic-artifacts.md), [specialized scope decision](../decisions/0004-specialized-workflows.md), [proposal](../plans/technology-agnostic-artifacts-proposal.md), and [evaluation evidence](../evals/technology-agnostic-artifacts.md).
+Select reusable `project-context`, `investigation`, `decision`, `migration`, and `verification-result` forms through repeated `--record-template`. Their conditional guide links only selected forms. Concrete records use existing project formats and are created only when requested or useful within authorized work. Default generation still creates no starter skill, role, pack, or record template. Deselected forms remain on disk and custom edits become update conflicts.
+
+See [core scope decision](../decisions/0003-technology-agnostic-artifacts.md), [specialized scope decision](../decisions/0004-specialized-workflows.md), [preset/record decision](../decisions/0005-presets-and-record-templates.md), [proposal](../plans/technology-agnostic-artifacts-proposal.md), and [evaluation evidence](../evals/technology-agnostic-artifacts.md).

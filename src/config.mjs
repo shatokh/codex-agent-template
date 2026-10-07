@@ -7,10 +7,13 @@ export const workflows = configSchema.properties.workflow.enum;
 export const packs = configSchema.properties.packs.items.enum;
 export const skills = configSchema.properties.skills.items.enum;
 export const roles = configSchema.properties.roles.items.enum;
+export const recordTemplates = configSchema.properties.recordTemplates.items.enum;
+export const presetDefinitions = JSON.parse(readFileSync(new URL("../templates/presets/catalog.json", import.meta.url), "utf8"));
+export const presets = Object.keys(presetDefinitions);
 export const roleDefinitions = JSON.parse(readFileSync(new URL("../templates/roles/catalog.json", import.meta.url), "utf8"));
 export const approvalPolicies = configSchema.properties.approvalPolicy.enum;
 export const schemaVersion = 1;
-export const templateVersion = "0.4.0";
+export const templateVersion = "0.5.0";
 
 export class ProjectError extends Error {
   constructor(code, message, details = {}) {
@@ -20,13 +23,23 @@ export class ProjectError extends Error {
   }
 }
 
+// Presets are input shortcuts, never persistent configuration or runtime policies.
+export function expandPreset({preset, ...input} = {}) {
+  if (preset === undefined) return input;
+  if (typeof preset !== "string" || !Object.hasOwn(presetDefinitions, preset)) throw new ProjectError("INVALID_CONFIG", `Unsupported preset: ${String(preset)}`);
+  if (input.skills !== undefined && !Array.isArray(input.skills)) throw new ProjectError("INVALID_CONFIG", "skills must be an array");
+  return {...input, skills: [...new Set([...presetDefinitions[preset].skills, ...(input.skills ?? [])])]};
+}
+
 export function normalizeConfig(input = {}) {
-  for (const field of ["packs", "skills", "roles"]) if (input[field] !== undefined && !Array.isArray(input[field])) throw new ProjectError("INVALID_CONFIG", `${field} must be an array`);
+  input = expandPreset(input);
+  for (const field of ["packs", "skills", "roles", "recordTemplates"]) if (input[field] !== undefined && !Array.isArray(input[field])) throw new ProjectError("INVALID_CONFIG", `${field} must be an array`);
   const value = {
     agent: input.agent ?? "codex", workflow: input.workflow ?? "light",
     projectKind: normalizeProjectKind(input.projectKind ?? "code"),
     packs: [...new Set(input.packs ?? [])], skills: [...new Set(input.skills ?? [])],
     roles: [...new Set(input.roles ?? [])],
+    recordTemplates: [...new Set(input.recordTemplates ?? [])],
     contextAdvisor: input.contextAdvisor ?? false,
     approvalPolicy: input.approvalPolicy ?? "conservative",
     generatedAt: input.generatedAt ?? new Date().toISOString().slice(0, 10),
@@ -52,7 +65,7 @@ export function configErrors(config) {
     if (!allowed.includes(config[field])) errors.push(`unsupported ${field}: ${String(config[field])}`);
   }
   try { normalizeProjectKind(config.projectKind ?? "code"); } catch { errors.push("unsupported projectKind"); }
-  for (const [field, allowed] of [["packs", packs], ["skills", skills], ["roles", roles]]) {
+  for (const [field, allowed] of [["packs", packs], ["skills", skills], ["roles", roles], ["recordTemplates", recordTemplates]]) {
     if (config[field] === undefined) continue;
     if (!Array.isArray(config[field]) || config[field].some(x => !allowed.includes(x))) errors.push(`${field} must be an array of supported names`);
     else if (new Set(config[field]).size !== config[field].length) errors.push(`${field} must not contain duplicates`);

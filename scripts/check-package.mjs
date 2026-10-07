@@ -20,11 +20,15 @@ try {
     for (const file of ["SKILL.md", "agents/openai.yaml"]) assert.ok(contents.includes(`templates/skills/${name}/${file}`), `Missing specialized skill: ${name}/${file}`);
   }
   assert.ok(contents.includes("templates/roles/docs-researcher.md"));
+  assert.ok(contents.includes("templates/presets/catalog.json"));
+  assert.ok(contents.includes("templates/base/docs/ai/record-templates.md.tmpl"));
+  const records = ["project-context", "investigation", "decision", "migration", "verification-result"];
+  for (const name of records) assert.ok(contents.includes(`templates/base/docs/ai/templates/${name}.md.tmpl`), `Missing record template: ${name}`);
   const unpack=path.join(temporary,"unpacked"),cwd=path.join(temporary,"unrelated"),target=path.join(temporary,"generated");
   await mkdir(unpack); await mkdir(cwd);
   await execute("tar",["-xzf",path.join(temporary,info.filename),"-C",unpack]);
   const cli=path.join(unpack,"package/bin/codex-agent-template.mjs");
-  await execute(process.execPath,[cli,"init-new","--target",target,"--agent","codex+claude","--workflow","spec-tdd","--skill","grill-me","--skill","bug-investigator",...["contract-review", "safe-refactor", "migration-planner", "docs-sync", "release-check"].flatMap(name=>["--skill",name]),"--role","repo-scout","--role","change-reviewer","--role","change-verifier","--role","docs-researcher","--context-advisor","--pack","privacy","--pack","compatibility","--pack","reliability","--pack","architecture","--apply"],{cwd});
+  await execute(process.execPath,[cli,"init-new","--target",target,"--agent","codex+claude","--workflow","spec-tdd","--preset","essential",...["contract-review", "safe-refactor", "migration-planner", "docs-sync", "release-check"].flatMap(name=>["--skill",name]),...records.flatMap(name=>["--record-template",name]),"--role","repo-scout","--role","change-reviewer","--role","change-verifier","--role","docs-researcher","--context-advisor","--pack","privacy","--pack","compatibility","--pack","reliability","--pack","architecture","--apply"],{cwd});
   const result=await execute(process.execPath,[cli,"validate","--target",target,"--output=json"],{cwd});
   assert.equal(JSON.parse(result.stdout).valid,true);
   console.log(`Package validation passed: ${contents.length} files; extracted CLI generates and validates from another cwd.`);

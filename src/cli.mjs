@@ -1,7 +1,7 @@
 import { readFile, mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { agents, workflows, packs, skills, roles, roleDefinitions, approvalPolicies, ProjectError } from "./config.mjs";
+import { agents, workflows, packs, skills, roles, roleDefinitions, presets, presetDefinitions, recordTemplates, expandPreset, approvalPolicies, ProjectError } from "./config.mjs";
 import { acceptedProjectKinds, supportedProjectKinds } from "./project-kind.mjs";
 import { initNew } from "./init-new.mjs";
 import { onboardExisting } from "./onboard-existing.mjs";
@@ -14,7 +14,7 @@ import { safePath } from "./file-plan.mjs";
 
 const str={type:"string"},bool={type:"boolean"},multi={type:"string",multiple:true};
 const common={target:str,output:str,help:{type:"boolean",short:"h"}};
-const generation={agent:str,workflow:str,"project-kind":str,pack:multi,skill:multi,role:multi,"context-advisor":bool,"no-context-advisor":bool,"approval-policy":str,"dry-run":bool};
+const generation={agent:str,workflow:str,"project-kind":str,preset:str,pack:multi,skill:multi,role:multi,"record-template":multi,"context-advisor":bool,"no-context-advisor":bool,"approval-policy":str,"dry-run":bool};
 const exportOptions={"proposal-file":str,"proposal-dir":str};
 const commandOptions={list:{output:str,help:common.help},validate:common,"init-new":{...common,...generation,apply:bool},"onboard-existing":{...common,...generation,...exportOptions,check:bool},"update-existing":{...common,...generation,...exportOptions,check:bool,apply:bool,approval:str,"plan-file":str,adopt:bool}};
 
@@ -26,14 +26,18 @@ export async function runCli(argv) {
     if(command==="help") return printHelp(rest[0]);
     if(!Object.hasOwn(commandOptions,command)) throw new ProjectError("USAGE",`Unknown command: ${command}`);
     let options;
-    try { options=parseArgs({args:rest,options:commandOptions[command],strict:true}).values; }
+    try {
+      const parsed=parseArgs({args:rest,options:commandOptions[command],strict:true,tokens:true});
+      options=parsed.values;
+      if(parsed.tokens.filter(token=>token.kind==="option" && token.name==="preset").length>1) throw new Error("Select one --preset; add individual workflows with --skill.");
+    }
     catch(error) { throw new ProjectError("USAGE",error.message); }
     if(options.help) return printHelp(command);
     validateOptions(options);
-    const selected=Object.fromEntries([["agent",options.agent],["workflow",options.workflow],["projectKind",options["project-kind"]],["packs",options.pack],["skills",options.skill],["roles",options.role],["contextAdvisor",options["context-advisor"]===undefined ? (options["no-context-advisor"] ? false : undefined) : true],["approvalPolicy",options["approval-policy"]]].filter(([,value])=>value!==undefined));
+    const selected=expandPreset(Object.fromEntries([["agent",options.agent],["workflow",options.workflow],["projectKind",options["project-kind"]],["preset",options.preset],["packs",options.pack],["skills",options.skill],["roles",options.role],["recordTemplates",options["record-template"]],["contextAdvisor",options["context-advisor"]===undefined ? (options["no-context-advisor"] ? false : undefined) : true],["approvalPolicy",options["approval-policy"]]].filter(([,value])=>value!==undefined)));
     const target=options.target ?? ".";
     let result;
-    if(command==="list") result={agents,workflows,projectKinds:supportedProjectKinds,packs,skills,roles,roleDefinitions,approvalPolicies};
+    if(command==="list") result={agents,workflows,projectKinds:supportedProjectKinds,packs,skills,roles,roleDefinitions,presets,presetDefinitions,recordTemplates,approvalPolicies};
     if(command==="init-new") result=await initNew({target,...selected,dryRun:!options.apply});
     if(command==="onboard-existing") result=await onboardExisting({target,...selected});
     if(command==="update-existing") {
@@ -64,7 +68,7 @@ export async function runCli(argv) {
     if(options.output==="json") console.log(JSON.stringify(result,null,2));
     else {
       if(command==="list") {
-        console.log(`Agents: ${agents.join(", ")}\nWorkflows: ${workflows.join(", ")}\nProject kinds: ${supportedProjectKinds.join(", ")}\nPacks: ${packs.join(", ")}\nSkills: ${skills.join(", ")}\nRoles: ${roles.join(", ")}`);
+        console.log(`Agents: ${agents.join(", ")}\nWorkflows: ${workflows.join(", ")}\nProject kinds: ${supportedProjectKinds.join(", ")}\nPacks: ${packs.join(", ")}\nSkills: ${skills.join(", ")}\nRoles: ${roles.join(", ")}\nPresets: ${presets.join(", ")}\nRecord templates: ${recordTemplates.join(", ")}`);
       } else if(command==="init-new") printInitResult(result);
       else if(command==="onboard-existing") printOnboardResult(result);
       else if(command==="update-existing") { printUpdateResult(result); console.log(renderUpdateProposal(result)); }
@@ -84,8 +88,8 @@ export async function runCli(argv) {
 }
 
 function validateOptions(options) {
-  for(const [name,allowed] of [["agent",agents],["workflow",workflows],["project-kind",acceptedProjectKinds],["output",["text","json"]],["approval-policy",approvalPolicies]]) if(options[name]!==undefined && !allowed.includes(options[name])) throw new ProjectError("USAGE",`Unsupported --${name} value: ${options[name]}`);
-  for(const [name,allowed] of [["pack",packs],["skill",skills],["role",roles]]) if(options[name]?.some(x=>!allowed.includes(x))) throw new ProjectError("USAGE",`Unsupported --${name} value`);
+  for(const [name,allowed] of [["agent",agents],["workflow",workflows],["project-kind",acceptedProjectKinds],["preset",presets],["output",["text","json"]],["approval-policy",approvalPolicies]]) if(options[name]!==undefined && !allowed.includes(options[name])) throw new ProjectError("USAGE",`Unsupported --${name} value: ${options[name]}`);
+  for(const [name,allowed] of [["pack",packs],["skill",skills],["role",roles],["record-template",recordTemplates]]) if(options[name]?.some(x=>!allowed.includes(x))) throw new ProjectError("USAGE",`Unsupported --${name} value`);
   if(options.apply && options["dry-run"]) throw new ProjectError("USAGE","--apply and --dry-run cannot be combined.");
   if(options["context-advisor"] && options["no-context-advisor"]) throw new ProjectError("USAGE","Use only one context advisor flag.");
   if(options["proposal-file"] && options["proposal-dir"]) throw new ProjectError("USAGE","Use either --proposal-file or --proposal-dir, not both.");

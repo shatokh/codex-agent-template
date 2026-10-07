@@ -1,0 +1,18 @@
+{
+  "essential": {
+    "description": "Seven core workflows for discovery, planning, investigation, review, verification, decisions, and handoff.",
+    "skills": ["repo-discovery", "feature-planner", "grill-me", "bug-investigator", "verify-change", "review-agent", "clean-chat-handoff"]
+  },
+  "review": {
+    "description": "Review changes, verify acceptance evidence, and assess consumer contracts.",
+    "skills": ["review-agent", "verify-change", "contract-review"]
+  },
+  "maintenance": {
+    "description": "Discover, investigate, refactor, plan migrations, verify, sync documentation, and hand off work.",
+    "skills": ["repo-discovery", "bug-investigator", "safe-refactor", "migration-planner", "verify-change", "docs-sync", "clean-chat-handoff"]
+  },
+  "architecture": {
+    "description": "Gather architecture evidence, plan, challenge uncertain decisions, assess contracts, and preserve handoff context.",
+    "skills": ["repo-discovery", "feature-planner", "grill-me", "contract-review", "clean-chat-handoff"]
+  }
+}
