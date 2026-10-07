@@ -1,6 +1,6 @@
 # codex-agent-template
 
-Reviewable AI-agent bootstrap for Codex, Claude, and Codex+Claude. Version 0.2 adds guarded updates, bounded evidence-based generation, runtime-specific skills, and a stronger doctor.
+Reviewable AI-agent bootstrap for Codex, Claude, and Codex+Claude. Version 0.3 adds technology-agnostic workflows, opt-in delegated roles, and conditional compatibility/reliability/architecture guidance to the guarded bootstrap/update CLI.
 
 Requires Node.js 22+ and no third-party runtime packages. Windows and Linux CI cover Node 24; a Linux job also covers Node 22. The package remains private.
 
@@ -28,7 +28,7 @@ Onboarding never writes target infrastructure. It reports missing artifacts, met
 
 ## Guarded update
 
-Update inherits saved agent/workflow/project-kind/packs/skills/policy. Flags override only explicitly selected settings.
+Update inherits saved agent/workflow/project-kind/packs/skills/roles/policy. Flags override only explicitly selected settings.
 
 ```sh
 node bin/codex-agent-template.mjs update-existing --target .local/example --workflow spec-tdd --plan-file .local/review.json --proposal-file .local/review.md
@@ -51,8 +51,9 @@ Proposal/plan exports use exclusive creation, reject infrastructure paths, and d
 - Agents: `codex`, `claude`, `codex+claude`.
 - Workflows: `light`, `task-first`, `spec-tdd`.
 - Project kinds: `code`, `docs`, `game-design`, `no-code` (`boardgame` remains a legacy alias).
-- Packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`; repeat `--pack`.
-- Starter skills: `grill-me`, `clean-chat-handoff`, `feature-planner`, `review-agent`; repeat `--skill`.
+- Packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`, `compatibility`, `reliability`, `architecture`; repeat `--pack`.
+- Starter skills: `grill-me`, `clean-chat-handoff`, `feature-planner`, `review-agent`, `repo-discovery`, `bug-investigator`, `verify-change`; repeat `--skill`.
+- Roles: `repo-scout`, `change-reviewer`, `change-verifier`; repeat `--role`. Required workflow skills are included automatically. `--agent` still selects the runtime.
 - `--context-advisor`: opt-in manual advisor; `--no-context-advisor` disables its generation in future plans.
 - `--approval-policy conservative|risk-based`: conservative is the default; both preserve already granted approval within its scope.
 
@@ -60,7 +61,19 @@ Root rules distinguish workflows and link selected packs/skills with usage condi
 
 Discovery reads at most 32 files, 32 KiB per file, 192 KiB in total, with bounded directory enumeration. It checks known root manifests, focused workspace packages, README headings, and simple CI command evidence. It does not execute discovered commands or read `.env` contents. CI evidence and inferred commands require human confirmation. Complex workspace patterns or CI scripts may need manual discovery.
 
-The versioned config format is documented in [config.schema.json](schemas/config.schema.json). Legacy configurations are checked with compatibility warnings; no automatic migration is performed.
+The versioned config format is documented in [config.schema.json](schemas/config.schema.json). The optional `roles` field preserves compatibility with version 0.2/schema-v1 metadata. Legacy configurations are checked with compatibility warnings; no automatic migration is performed.
+
+## Technology-agnostic workflows and roles
+
+The [artifact catalog](docs/ai/artifact-catalog.md) explains seven core skills, three roles, conditional packs, and their evidence/permission boundaries. No programming language, source layout, test framework, architecture style, or external service is mandatory. Default init generates no starter skills, roles, or packs.
+
+```sh
+node bin/codex-agent-template.mjs init-new --target .local/roles-example --agent codex+claude --role repo-scout --role change-reviewer --role change-verifier --skill bug-investigator --pack compatibility --pack reliability --pack architecture
+```
+
+Review preview and repeat with `--apply` to create. Codex roles use `.codex/agents/*.toml`; Claude uses `.claude/agents/*.md`. Both come from shared role bodies. Generation does not enable delegation automatically or change the parent model/permissions. Verifier returns a plan when safe execution is unavailable. Generated `docs/ai/delegation.md` explains runtime-specific limits.
+
+Selected arrays replace the previous selection; omitted update settings are preserved. Deselected artifacts remain on disk, and native runtimes may still discover them. Deselecting a role does not revoke it: disable/remove retained files only through separate review. Existing user-edited role files become update conflicts.
 
 ## Grill Me
 
@@ -77,9 +90,10 @@ node scripts/validate-project.mjs
 node --test
 node scripts/check-package.mjs
 node scripts/eval-skills.mjs --scenario architecture
+node scripts/eval-skills.mjs --skill bug-investigator --scenario bug-unreproduced
 ```
 
-`validate` checks config, required files, generated scalar skill frontmatter, internal file references, root size, unresolved template variables, and ignore rules. Findings include severity/code/path/fix. Secret-like patterns and excessive context are warnings, not a comprehensive semantic or security audit. Git ignore semantics are tested at the target Git root; otherwise the report explicitly marks the fallback. `onboard-existing --check` requires both presence/config completeness and content validity.
+`validate` checks config, required files, generated scalar skill frontmatter, generated role fields/permissions/workflow references, internal file references, root size, unresolved template variables, and ignore rules. Findings include severity/code/path/fix. Selected roles get `RUNTIME_UNVERIFIED`: doctor cannot prove native loading or effective delegate permissions. Custom native formats need runtime validation. Secret-like patterns and excessive context are warnings, not a comprehensive semantic or security audit. Git ignore semantics are tested at the target Git root; otherwise the report explicitly marks the fallback. `onboard-existing --check` requires both presence/config completeness and content validity.
 
 `--output json` emits one JSON document, including export paths and structured failures. Exit codes: **0** success, **1** validation/conflict/write failure, **2** invalid usage. Command-specific help: `node bin/codex-agent-template.mjs update-existing --help`.
 
@@ -90,6 +104,8 @@ node scripts/eval-skills.mjs --scenario architecture
 - [Active implementation plan](docs/plans/implementation-plan.md)
 - [Approved upgrade proposal](docs/plans/upgrade-proposal-2026-10-06.md)
 - [Scope decision 0002](docs/decisions/0002-approved-reliability-and-skills.md)
+- [Artifact scope decision 0003](docs/decisions/0003-technology-agnostic-artifacts.md)
+- [Technology-agnostic artifact catalog](docs/ai/artifact-catalog.md)
 - [Portable cookbook](docs/cookbooks/manual-run-cookbook.md)
 - [Research](docs/research/internet-best-practices.md)
 

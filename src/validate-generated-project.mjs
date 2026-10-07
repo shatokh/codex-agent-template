@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { configErrors, normalizeConfig, skillRoots } from "./config.mjs";
 import { buildGeneratedFilePlan } from "./init-new.mjs";
 import { currentContent, manifestName, readManifest, safePath } from "./file-plan.mjs";
+import { validateRole } from "./roles.mjs";
 
 export async function validateGeneratedProject(target) {
   const root=path.resolve(target), findings=[];
@@ -32,6 +33,10 @@ export async function validateGeneratedProject(target) {
     if(/(?:sk-[A-Za-z0-9_-]{24,}|gh[pousr]_[A-Za-z0-9]{30,}|AKIA[A-Z0-9]{16})/.test(content)) add("warning","SECRET_PATTERN",file.relativePath,"A secret-like pattern was detected (value redacted).","Review locally; remove any real credential.");
     if(/always (?:read|load) (?:all|every)/i.test(content)) add("warning","EXCESSIVE_CONTEXT",file.relativePath,"May require unnecessary document loading for routine edits.","Scope discovery to the actual task.");
     if(file.relativePath.endsWith("SKILL.md")) validateSkill(file.relativePath,content,add);
+    if(/^\.(?:codex|claude)\/agents\//.test(file.relativePath)) {
+      const instructions = validateRole(file.relativePath,content,add);
+      if(instructions) validateLinks(root,file.relativePath,instructions,add);
+    }
   }
   const rootName=config.agent==="claude" ? "CLAUDE.md" : "AGENTS.md";
   const instructions=actual.get(rootName);
@@ -47,6 +52,7 @@ export async function validateGeneratedProject(target) {
     if(!manifest) add(config.schemaVersion ? "error" : "warning","MISSING_MANIFEST",manifestName,"No ownership manifest; existing files are not safe to replace.","Review legacy adoption or generate a new project.");
   } catch(error) { add("error","INVALID_MANIFEST",manifestName,error.message,"Repair manifest through explicit review."); }
   if(config.schemaVersion===undefined) add("warning","LEGACY_CONFIG",".agent-template.json","Legacy config has no schema version.","Review a schema upgrade; no automatic migration is performed.");
+  if(config.roles?.length) add("warning","RUNTIME_UNVERIFIED","docs/ai/delegation.md","Generated role format checked; native discovery, installed runtime version, and effective permissions are unverified by doctor.","Use runtime discovery/config diagnostics in the intended environment; fall back to the matching skill if unsupported.");
   return finish();
 }
 

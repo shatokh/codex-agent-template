@@ -5,6 +5,7 @@ import { normalizeConfig, schemaVersion, templateVersion, skillRoots } from "./c
 import { discoverExisting } from "./discover-existing.mjs";
 import { applyEntries, currentContent, makeEntry, manifestFile, safePath } from "./file-plan.mjs";
 import { projectKindLabel, verificationGuidanceForProjectKind, verificationRowsForProjectKind } from "./project-kind.mjs";
+import { buildRoleFiles, rolePaths } from "./roles.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const templatesRoot = path.join(projectRoot, "templates", "base");
@@ -25,12 +26,12 @@ export async function initNew({ target, dryRun = true, ...options }) {
 export async function buildGeneratedFilePlan({target, discovery, ...options}) {
   const targetRoot=path.resolve(target), config=normalizeConfig(options);
   discovery ??= discoverExisting(targetRoot);
-  const {agent,workflow,projectKind,packs,skills,contextAdvisor,approvalPolicy,generatedAt}=config;
+  const {agent,workflow,projectKind,packs,skills,roles,contextAdvisor,approvalPolicy,generatedAt}=config;
   const roots=skillRoots(agent), selectedSkills=[...skills,...(contextAdvisor ? ["context-artifact-advisor"] : [])];
-  const packTriggers={privacy:"handling personal or private data","external-services":"using paid APIs, production accounts, or external services",security:"changing authentication, permissions, dependencies, or secret handling","test-harness":"setting up fixtures, tests, playtests, or repeatable verification",docs:"changing documented setup, commands, or public behavior"};
+  const packTriggers={privacy:"handling personal or private data","external-services":"using paid APIs, production accounts, or external services",security:"changing authentication, permissions, dependencies, or secret handling","test-harness":"setting up fixtures, tests, playtests, or repeatable verification",docs:"changing documented setup, commands, or public behavior",compatibility:"changing a consumer-facing contract or persisted format",reliability:"changing state, resources, failure handling, or recovery",architecture:"changing component boundaries or major dependencies"};
   const context={projectName:markdownText(path.basename(targetRoot)),projectSummary:markdownText(discovery.summary),agent,workflow,projectKind,projectKindLabel:projectKindLabel(projectKind),generatedAt,
     workflowRules:workflowRules(workflow,projectKind),approvalRules:approvalPolicy==="risk-based" ? "- Continue explicitly authorized, reversible work within scope. Plan and seek approval for destructive operations, production changes, or consequential unresolved scope.\n- Reuse approval for its agreed scope; do not request it again for each implementation step." : "- For meaningful code, infrastructure, content, rules, assets, dependency, or behavior changes, plan first and wait for explicit approval unless that scope is already approved.\n- Continue work within the agreed scope without requesting approval again for each step.",
-    optionalGuidance:packs.map(name=>`- When ${packTriggers[name]}, use [${name} guidance](docs/ai/packs/${name}.md).`).join("\n") + (selectedSkills.length ? "\n- Available workflows: " + selectedSkills.map(name=>`[${name}](${roots[0]}/${name}/SKILL.md)`).join(", ")+"." : "") + (skills.includes("grill-me") ? "\n- Use grill-me for a contested consequential decision with unresolved evidence; let settled routine choices proceed." : ""),
+    optionalGuidance:packs.map(name=>`- When ${packTriggers[name]}, use [${name} guidance](docs/ai/packs/${name}.md).`).join("\n") + (selectedSkills.length ? "\n- Available workflows: " + selectedSkills.map(name=>`[${name}](${roots[0]}/${name}/SKILL.md)`).join(", ")+"." : "") + (skills.includes("grill-me") ? "\n- Use grill-me for a contested consequential decision with unresolved evidence; let settled routine choices proceed." : "") + (roles.length ? "\n- Available delegated roles: " + roles.flatMap(name=>rolePaths(agent,name).map(filename=>`[${name} (${filename.startsWith(".codex") ? "Codex" : "Claude"})](${filename})`)).join(", ")+".\n- Delegate only when requested or authorized by applicable instructions; installation is not authorization. Follow [delegation boundaries](docs/ai/delegation.md)." : ""),
     verificationTableRows:renderVerificationRows(projectKind,discovery), verificationGuidance:verificationGuidanceForProjectKind(projectKind),
     configJson:JSON.stringify({template:"codex-agent-template",version:templateVersion,schemaVersion,...config},null,2)};
   const files=[];
@@ -49,14 +50,21 @@ export async function buildGeneratedFilePlan({target, discovery, ...options}) {
   if(workflow==="task-first") await render("docs/tasks/TEMPLATE.md","docs/tasks/TEMPLATE.md.tmpl");
   if(workflow==="spec-tdd") for(const name of ["specs","ai-change-records"]) await render(`docs/${name}/TEMPLATE.md`,`docs/${name}/TEMPLATE.md.tmpl`);
   for(const name of packs) await render(`docs/ai/packs/${name}.md`,`docs/ai/packs/${name}.md.tmpl`);
+  if(roles.length) {
+    files.push(...await buildRoleFiles(targetRoot,agent,roles));
+    await render("docs/ai/delegation.md","docs/ai/delegation.md.tmpl");
+  }
   for(const name of skills) {
     const content=await readFile(path.join(projectRoot,"templates","skills",name,"SKILL.md"),"utf8");
+    let metadata=null;
+    try { metadata=await readFile(path.join(projectRoot,"templates","skills",name,"agents/openai.yaml"),"utf8"); }
+    catch(error) { if(error.code!=="ENOENT") throw error; }
     for(const root of roots) {
       const relativePath=`${root}/${name}/SKILL.md`;
       files.push({relativePath,absolutePath:safePath(targetRoot,relativePath),content});
-      if(root===".agents/skills" && name==="grill-me") {
+      if(root===".agents/skills" && metadata!==null) {
         const metadataPath=`${root}/${name}/agents/openai.yaml`;
-        files.push({relativePath:metadataPath,absolutePath:safePath(targetRoot,metadataPath),content:await readFile(path.join(projectRoot,"templates/skills/grill-me/agents/openai.yaml"),"utf8")});
+        files.push({relativePath:metadataPath,absolutePath:safePath(targetRoot,metadataPath),content:metadata});
       }
     }
   }

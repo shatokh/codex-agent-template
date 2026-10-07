@@ -1,0 +1,9 @@
+# Compatibility Pack
+
+Use when changing a contract consumed by another component, person, or persisted artifact.
+
+- Identify consumers and the before/after behavior of inputs, outputs, errors, formats, and defaults that actually apply.
+- Distinguish compatible additions from breaking changes. Preserve accepted behavior or record an explicitly authorized break.
+- Consider old/new coexistence and existing stored data when relevant; do not assume a particular protocol or storage engine.
+- Verify representative existing consumers and boundary cases using available project checks or scenarios.
+- Record migration/recovery limits when a change is irreversible; do not promise rollback without evidence.

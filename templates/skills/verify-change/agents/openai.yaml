@@ -1,0 +1,6 @@
+interface:
+  display_name: "Verify Change"
+  short_description: "Gather acceptance evidence with appropriate project checks"
+  default_prompt: "Use $verify-change to assess whether this change meets its acceptance criteria."
+policy:
+  allow_implicit_invocation: true

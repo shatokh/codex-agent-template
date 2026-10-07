@@ -13,6 +13,7 @@ The v1 scope is limited to Codex, Claude, and Codex+Claude modes.
 - Put long procedures in `docs/`, repeatable workflows in skills, and deterministic checks in scripts or future hooks.
 - Do not add adapters for Gemini, Cursor, Copilot, Cline, Roo, or Windsurf in v1 unless the plan is explicitly amended.
 - The approved 0.2 scope includes guarded updates, manual context advisor, and opt-in starter skills. Keep hooks, session capture, automatic merge, and plugin packaging in backlog.
+- The approved 0.3 stage adds technology-agnostic core skills, opt-in roles, and conditional packs; see docs/ai/artifact-catalog.md. Role installation does not authorize delegation.
 - Do not overwrite generated target-project files by default; new CLI behavior must prefer dry-run and reviewable proposals.
 - Keep discovery bounded and avoid loading entire repositories when focused evidence is enough.
 - Keep verification adaptive; simple projects should not receive heavy test matrices.

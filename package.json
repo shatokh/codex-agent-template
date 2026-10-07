@@ -1,6 +1,6 @@
 {
   "name": "codex-agent-template",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Codex-first project bootstrap templates for AI-agent instructions and workflows.",
   "type": "module",

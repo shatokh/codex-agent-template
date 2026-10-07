@@ -1,0 +1,6 @@
+interface:
+  display_name: "Repository Discovery"
+  short_description: "Find the relevant behavior, ownership, and verification path"
+  default_prompt: "Use $repo-discovery to map the repository evidence needed for this task."
+policy:
+  allow_implicit_invocation: true

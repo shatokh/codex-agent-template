@@ -1,0 +1,6 @@
+interface:
+  display_name: "Bug Investigator"
+  short_description: "Reproduce a failure and test its possible causes"
+  default_prompt: "Use $bug-investigator to investigate this failure before proposing a fix."
+policy:
+  allow_implicit_invocation: true

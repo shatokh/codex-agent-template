@@ -6,9 +6,11 @@ export const agents = configSchema.properties.agent.enum;
 export const workflows = configSchema.properties.workflow.enum;
 export const packs = configSchema.properties.packs.items.enum;
 export const skills = configSchema.properties.skills.items.enum;
+export const roles = configSchema.properties.roles.items.enum;
+export const roleDefinitions = JSON.parse(readFileSync(new URL("../templates/roles/catalog.json", import.meta.url), "utf8"));
 export const approvalPolicies = configSchema.properties.approvalPolicy.enum;
 export const schemaVersion = 1;
-export const templateVersion = "0.2.0";
+export const templateVersion = "0.3.0";
 
 export class ProjectError extends Error {
   constructor(code, message, details = {}) {
@@ -19,15 +21,17 @@ export class ProjectError extends Error {
 }
 
 export function normalizeConfig(input = {}) {
-  for (const field of ["packs", "skills"]) if (input[field] !== undefined && !Array.isArray(input[field])) throw new ProjectError("INVALID_CONFIG", `${field} must be an array`);
+  for (const field of ["packs", "skills", "roles"]) if (input[field] !== undefined && !Array.isArray(input[field])) throw new ProjectError("INVALID_CONFIG", `${field} must be an array`);
   const value = {
     agent: input.agent ?? "codex", workflow: input.workflow ?? "light",
     projectKind: normalizeProjectKind(input.projectKind ?? "code"),
     packs: [...new Set(input.packs ?? [])], skills: [...new Set(input.skills ?? [])],
+    roles: [...new Set(input.roles ?? [])],
     contextAdvisor: input.contextAdvisor ?? false,
     approvalPolicy: input.approvalPolicy ?? "conservative",
     generatedAt: input.generatedAt ?? new Date().toISOString().slice(0, 10),
   };
+  value.skills = [...new Set([...value.skills, ...value.roles.flatMap(name => roleDefinitions[name]?.skills ?? [])])];
   const errors = configErrors(value);
   if (errors.length) throw new ProjectError("INVALID_CONFIG", errors.join("; "));
   return value;
@@ -48,10 +52,13 @@ export function configErrors(config) {
     if (!allowed.includes(config[field])) errors.push(`unsupported ${field}: ${String(config[field])}`);
   }
   try { normalizeProjectKind(config.projectKind ?? "code"); } catch { errors.push("unsupported projectKind"); }
-  for (const [field, allowed] of [["packs", packs], ["skills", skills]]) {
+  for (const [field, allowed] of [["packs", packs], ["skills", skills], ["roles", roles]]) {
     if (config[field] === undefined) continue;
     if (!Array.isArray(config[field]) || config[field].some(x => !allowed.includes(x))) errors.push(`${field} must be an array of supported names`);
     else if (new Set(config[field]).size !== config[field].length) errors.push(`${field} must not contain duplicates`);
+  }
+  if (Array.isArray(config.roles) && Array.isArray(config.skills)) for (const name of config.roles) {
+    for (const skill of roleDefinitions[name]?.skills ?? []) if (!config.skills.includes(skill)) errors.push(`role ${name} requires skill ${skill}`);
   }
   if (config.contextAdvisor !== undefined && typeof config.contextAdvisor !== "boolean") errors.push("contextAdvisor must be boolean");
   if (config.schemaVersion !== undefined && config.schemaVersion !== schemaVersion) errors.push("unsupported schemaVersion");

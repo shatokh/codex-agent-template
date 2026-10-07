@@ -1,14 +1,26 @@
 # Active implementation plan
 
-Updated: 2026-10-06. Current version: 0.2.0.
+Updated: 2026-10-07. Current version: 0.3.0.
 
 The user approved all nine points of [the upgrade proposal](upgrade-proposal-2026-10-06.md), plus grill-me for consequential disputed decisions. [ADR 0002](../decisions/0002-approved-reliability-and-skills.md) records the new scope. The original bootstrap analysis is preserved in [the archive](archive/implementation-plan-2026-08-04.md).
+
+The user subsequently approved the first stage of [technology-agnostic artifacts](technology-agnostic-artifacts-proposal.md). [ADR 0003](../decisions/0003-technology-agnostic-artifacts.md) records its boundaries. See [the catalog](../ai/artifact-catalog.md) for selection and contracts.
+
+## Implemented artifact stage (0.3)
+
+1. Added repo-discovery, bug-investigator, and verify-change; refined planner/reviewer/handoff triggers, outcomes, and stopping conditions. The repository includes all seven core skills.
+2. Added shared repo-scout, change-reviewer, and change-verifier bodies with native Codex/Claude wrappers, workflow dependencies, and separate --role selection. The repository includes the three Codex definitions. Installation does not authorize delegation.
+3. Added compatibility/reliability/architecture packs; refined short root rules for evidence, commands, compatibility, untrusted content, and proportional verification.
+4. Integrated roles with optional schema-v1 metadata, CLI/list/onboarding, role/reference/policy diagnostics, saved plans, and existing conflict/hash/recovery protections. Default selection remains empty; deselected files remain available until separately removed/disabled.
+5. Added application/CLI/library/docs/no-code generation fixtures across all three modes, package smoke for roles, and additional behavioral scenarios selectable through eval --skill. Real model evals and native delegate execution are not claimed complete.
+
+Current checks: 66 tests, project validator, and extracted package smoke pass locally. Codex 0.160.1 discovered seven core skills without errors. Role native loading/effective policies and live Claude behavior remain unverified; see [verification evidence](../evals/technology-agnostic-artifacts.md). The five specialized skills, docs-researcher, optional record templates, and presets remain later-stage options.
 
 ## Objective
 
 Provide a portable, reviewable bootstrap CLI for Codex, Claude, and Codex+Claude. Prefer preview, preserve user changes, keep root instructions short, and generate useful guidance from bounded evidence. No additional agent adapters or LLM backend are required.
 
-## Implemented upgrade
+## Implemented reliability upgrade (0.2)
 
 1. Scope/status documentation and ADR aligned with existing guarded update and manual advisor.
 2. Strict per-command CLI options, command help, one-document JSON, structured error codes, and format-independent exit status. Init previews unless --apply is passed.

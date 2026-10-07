@@ -1,0 +1,9 @@
+# Reliability Pack
+
+Use when work changes state, resources, partial success, or recovery from failures.
+
+- Identify relevant failure conditions and what remains committed or changed after a partial failure.
+- Consider cancellation, time limits, cleanup, repeated execution, and resource ownership where they apply.
+- Retry only when the operation's side effects make it safe; use the project's actual constraints rather than invented retry policies.
+- Make failure and recovery observable without exposing sensitive data or changing an established error contract silently.
+- Verify a representative failure/recovery path proportionally to the risk. Label untested failure scenarios as hypotheses.

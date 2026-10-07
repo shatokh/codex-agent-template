@@ -11,6 +11,8 @@ Preview a baseline/treatment pair without invoking a model:
 ```sh
 node scripts/eval-skills.mjs --scenario architecture
 node scripts/eval-skills.mjs --scenario typo
+node scripts/eval-skills.mjs --skill bug-investigator --scenario bug-unreproduced
+node scripts/eval-skills.mjs --skill verify-change --scenario verification-blocked
 ```
 
 Explicit real runs use a locally installed/authenticated runtime:
@@ -22,7 +24,7 @@ node scripts/eval-skills.mjs --run --runtime claude --scenario architecture-foll
 
 These commands start two real sessions and can consume account quota or incur cost. Choose model/account intentionally; `--model` is optional. Output defaults to ignored `.local/evals/<timestamp>-<scenario>/`. Fixtures are isolated and prompts request conversational, read-only work. Codex uses read-only sandbox and ignores user config/rules; Claude disables tools. No session capture or hooks are installed. A timeout bounds wall time, not monetary spend.
 
-The runner injects skill text explicitly for controlled comparison. It measures instruction influence, not automatic discovery. It records runtime version, requested model or runtime default, duration, limit status, transcripts, and a rubric that needs human scoring. Repeat runs to study variability before claiming improvement. Never supply real secrets in fixtures or publish raw traces without reviewing them.
+The runner injects the skill selected by --skill (default grill-me) explicitly for controlled comparison. It measures instruction influence, not automatic discovery. It records runtime version, requested model or runtime default, duration, limit status, transcripts, and a rubric that needs human scoring. Repeat runs to study variability before claiming improvement. Never supply real secrets in fixtures or publish raw traces without reviewing them. See [core artifact evidence](technology-agnostic-artifacts.md) for new routing/uncertainty scenarios and native role limits.
 
 ## Current evidence
 

@@ -83,10 +83,21 @@ In this repository, invoke $grill-me in Codex. Generated Claude Code projects us
 
 The skill can select itself for disputed consequential decisions with unresolved evidence. It does not reopen an approved reversible choice without new facts. It asks up to three questions per round and waits for answers before judging the unresolved decision.
 
-## Evaluation
+## Optional roles and core workflows
+
+```sh
+node bin/codex-agent-template.mjs init-new --target .local/roles-demo --agent codex+claude --role repo-scout --role change-reviewer --role change-verifier --skill bug-investigator --pack compatibility --pack reliability --pack architecture
+```
+
+Review preview and add --apply to create. Roles include required skills automatically. Use --role on a saved update proposal to add them to an existing project. Role files and their constraints differ by runtime; installation does not grant delegation or execution permission. See [the catalog](../ai/artifact-catalog.md). Deselecting a role retains its native file; disabling/removing retained artifacts requires separate review.
+
+## Evaluation previews
 
 ```sh
 node scripts/eval-skills.mjs --scenario architecture
+node scripts/eval-skills.mjs --skill repo-discovery --scenario discovery-unavailable
+node scripts/eval-skills.mjs --skill bug-investigator --scenario bug-unreproduced
+node scripts/eval-skills.mjs --skill verify-change --scenario verification-blocked
 ```
 
 Default evaluation only previews prompts/rubrics. See ../evals/README.md for explicitly running model sessions, account/resource considerations, and limits of the evidence.

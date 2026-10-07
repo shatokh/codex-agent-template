@@ -1,0 +1,17 @@
+{
+  "repo-scout": {
+    "description": "Gather focused repository evidence for a delegated question without editing or executing project code.",
+    "skills": ["repo-discovery"],
+    "claudeTools": ["Read", "Grep", "Glob"]
+  },
+  "change-reviewer": {
+    "description": "Independently review a supplied change for concrete regressions and acceptance gaps without fixing it.",
+    "skills": ["review-agent"],
+    "claudeTools": ["Read", "Grep", "Glob"]
+  },
+  "change-verifier": {
+    "description": "Assess acceptance evidence and run only authorized checks that respect the supplied isolation and write boundaries.",
+    "skills": ["verify-change"],
+    "claudeTools": ["Read", "Grep", "Glob", "Bash", "PowerShell"]
+  }
+}

@@ -9,6 +9,7 @@ export async function onboardExisting({
   workflow = "light",
   packs = [],
   skills = [],
+  roles = [],
   approvalPolicy = "conservative",
   contextAdvisor = false,
   projectKind = "code",
@@ -22,11 +23,14 @@ export async function onboardExisting({
     projectKind: normalizedProjectKind,
     packs,
     skills,
+    roles,
     approvalPolicy,
     contextAdvisor,
     discovery,
     dryRun: true,
   });
+  skills = plan.skills;
+  roles = plan.roles;
   const configurationIssues = buildConfigurationIssues({
     discovery,
     agent,
@@ -35,6 +39,7 @@ export async function onboardExisting({
     contextAdvisor,
     projectKind: normalizedProjectKind,
     skills,
+    roles,
     approvalPolicy,
   });
   const findings = buildFindings({
@@ -58,6 +63,7 @@ export async function onboardExisting({
     packs,
     contextAdvisor,
     skills,
+    roles,
     approvalPolicy,
     discovery,
     proposedCreates: plan.created,
@@ -76,6 +82,8 @@ export async function onboardExisting({
       workflow,
       packs,
       contextAdvisor,
+      skills,
+      roles,
       validation,
     }),
     findings: [...findings, ...configurationIssuesToFindings(configurationIssues), ...contentFindings,
@@ -93,6 +101,8 @@ function buildRecommendations({
   workflow,
   packs,
   contextAdvisor,
+  skills,
+  roles,
   validation,
 }) {
   const projectKindMismatch =
@@ -133,6 +143,8 @@ function buildRecommendations({
         projectKind: discovery.projectKindSuggestion.kind,
         packs,
         contextAdvisor,
+        skills,
+        roles,
       })}`
     );
   }
@@ -154,6 +166,8 @@ function buildRecommendedOnboardCommand({
   projectKind,
   packs,
   contextAdvisor,
+  skills = [],
+  roles = [],
 }) {
   const args = [
     "node",
@@ -172,6 +186,8 @@ function buildRecommendedOnboardCommand({
   for (const pack of packs) {
     args.push("--pack", pack);
   }
+  for (const skill of skills) args.push("--skill", skill);
+  for (const role of roles) args.push("--role", role);
 
   if (contextAdvisor) {
     args.push("--context-advisor");
@@ -197,6 +213,7 @@ function buildConfigurationIssues({
   contextAdvisor,
   projectKind,
   skills = [],
+  roles = [],
   approvalPolicy = "conservative",
 }) {
   if (!discovery.agentTemplate.exists) {
@@ -220,7 +237,10 @@ function buildConfigurationIssues({
   compareMetadata(issues, "projectKind", projectKind, config.projectKind || "code");
   compareMetadata(issues, "contextAdvisor", contextAdvisor, config.contextAdvisor);
   compareMetadata(issues, "approvalPolicy", approvalPolicy, config.approvalPolicy || "conservative");
-  if (JSON.stringify([...skills].sort()) !== JSON.stringify([...(config.skills || [])].sort())) issues.push({path:".agent-template.json",expected:`skills=${skills.join(", ")}`,actual:`skills=${(config.skills || []).join(", ")}`});
+  for (const [name, selected] of [["skills", skills], ["roles", roles]]) {
+    const actual = config[name] || [];
+    if (JSON.stringify([...selected].sort()) !== JSON.stringify([...actual].sort())) issues.push({path:".agent-template.json",expected:`${name}=${selected.join(", ")}`,actual:`${name}=${actual.join(", ")}`});
+  }
 
   const actualPacks = Array.isArray(config.packs) ? config.packs : [];
   if (JSON.stringify([...packs].sort()) !== JSON.stringify([...actualPacks].sort())) {

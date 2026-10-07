@@ -5,23 +5,25 @@ import path from "node:path";
 import os from "node:os";
 import {parseArgs} from "node:util";
 import {fileURLToPath} from "node:url";
+import {skills} from "../src/config.mjs";
 
 const repo=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
-const {values}=parseArgs({options:{run:{type:"boolean"},scenario:{type:"string",default:"architecture"},runtime:{type:"string",default:"codex"},model:{type:"string"},output:{type:"string",default:".local/evals"},timeout:{type:"string",default:"120"}},strict:true});
+const {values}=parseArgs({options:{run:{type:"boolean"},skill:{type:"string",default:"grill-me"},scenario:{type:"string",default:"architecture"},runtime:{type:"string",default:"codex"},model:{type:"string"},output:{type:"string",default:".local/evals"},timeout:{type:"string",default:"120"}},strict:true});
 const cases=JSON.parse(await readFile(path.join(repo,"docs/evals/scenarios.json"),"utf8"));
 const scenario=cases.find(x=>x.id===values.scenario);
 assert.ok(scenario,"Unknown scenario");
 assert.ok(["codex","claude"].includes(values.runtime),"Runtime must be codex or claude");
+assert.ok(skills.includes(values.skill),"Unknown skill");
 const timeout=Number(values.timeout)*1000;
 assert.ok(Number.isFinite(timeout) && timeout>=1000 && timeout<=300000,"Timeout must be 1..300 seconds");
-const skill=await readFile(path.join(repo,"templates/skills/grill-me/SKILL.md"),"utf8");
-const variants=[{name:"baseline",prompt:scenario.prompt},{name:"grill-me",prompt:`Use these workflow instructions for this task:\n${skill}\n\nTask:\n${scenario.prompt}`}];
+const skill=await readFile(path.join(repo,"templates/skills",values.skill,"SKILL.md"),"utf8");
+const variants=[{name:"baseline",prompt:scenario.prompt},{name:values.skill,prompt:`Use these workflow instructions when they apply to this task:\n${skill}\n\nTask:\n${scenario.prompt}`}];
 if(!values.run) {
-  console.log(JSON.stringify({dryRun:true,runtime:values.runtime,scenario:scenario.id,rubric:scenario.rubric,variants,notice:"Preview only. --run starts two real runtime sessions using your configured account; review cost and permissions first."},null,2));
+  console.log(JSON.stringify({dryRun:true,skill:values.skill,runtime:values.runtime,scenario:scenario.id,rubric:scenario.rubric,variants,notice:"Preview only. --run starts two real runtime sessions using your configured account; review cost and permissions first."},null,2));
   process.exit(0);
 }
 const sandbox=await mkdtemp(path.join(os.tmpdir(),"cat-eval-"));
-const output=path.resolve(values.output,`${new Date().toISOString().replace(/[:.]/g,"-")}-${scenario.id}`);
+const output=path.resolve(values.output,`${new Date().toISOString().replace(/[:.]/g,"-")}-${values.skill}-${scenario.id}`);
 await mkdir(output,{recursive:true});
 try {
   await writeFile(path.join(sandbox,"fixture.txt"),"Read-only conversational evaluation fixture.\n");
@@ -34,7 +36,7 @@ try {
     await writeFile(path.join(output,`${variant.name}.json`),JSON.stringify(result,null,2));
     results.push({variant:variant.name,exitCode:result.exitCode,elapsedMs:result.elapsedMs,outputBytes:Buffer.byteLength(result.stdout),assessment:"not scored; apply the recorded rubric"});
   }
-  const report={scenario:scenario.id,runtime:values.runtime,runtimeVersion:version.stdout.trim(),model:values.model ?? "runtime default; see transcript",timeoutMs:timeout,rubric:scenario.rubric,results,limitations:"One baseline/treatment pair; explicit skill-body injection tests instruction behavior, not automatic discovery or repeated-run consistency."};
+  const report={skill:values.skill,scenario:scenario.id,runtime:values.runtime,runtimeVersion:version.stdout.trim(),model:values.model ?? "runtime default; see transcript",timeoutMs:timeout,rubric:scenario.rubric,results,limitations:"One baseline/treatment pair; explicit skill-body injection tests instruction behavior, not automatic discovery or repeated-run consistency."};
   await writeFile(path.join(output,"report.json"),JSON.stringify(report,null,2));
   console.log(JSON.stringify({output,...report},null,2));
 } finally {
