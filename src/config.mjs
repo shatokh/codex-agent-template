@@ -10,7 +10,7 @@ export const roles = configSchema.properties.roles.items.enum;
 export const roleDefinitions = JSON.parse(readFileSync(new URL("../templates/roles/catalog.json", import.meta.url), "utf8"));
 export const approvalPolicies = configSchema.properties.approvalPolicy.enum;
 export const schemaVersion = 1;
-export const templateVersion = "0.3.0";
+export const templateVersion = "0.4.0";
 
 export class ProjectError extends Error {
   constructor(code, message, details = {}) {

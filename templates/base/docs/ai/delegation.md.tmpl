@@ -9,6 +9,7 @@ Delegate only after an explicit request or applicable instruction authorizes del
 - `repo-scout`: read and search for a bounded repository question; no project-code execution or editing.
 - `change-reviewer`: read the supplied diff/snapshot and affected evidence; no execution or fixes.
 - `change-verifier`: assess criteria and execute only authorized checks compatible with the supplied isolation. Product edits, dependency installation, production access, and permission weakening are outside its role.
+- `docs-researcher`: answer a bounded documentation question with primary sources, version applicability, citations, and uncertainty; no execution or edits. It uses repo-discovery only to locate relevant local version/usage evidence.
 
 Each role includes its workflow skill as a dependency. In Codex, the instructions link to that local SKILL.md. In Claude, the skill is explicitly listed for preloading. Models and mandatory external services are not pinned.
 
@@ -16,7 +17,9 @@ Each role includes its workflow skill as a dependency. In Codex, the instruction
 
 Codex role files are generated in `.codex/agents/*.toml` with `sandbox_mode = "read-only"`. They do not grant additional write access. Tests needing caches/build output require the parent to supply an appropriate disposable environment and explicitly permitted locations. A read-only runtime that cannot accommodate those writes returns a plan and limitation instead. Parent runtime overrides can supersede role defaults; inspect effective permissions before execution.
 
-Claude role files are generated in `.claude/agents/*.md`. Scout/reviewer allow only reading and search. Verifier also allows available shell tools under `permissionMode: default`; shell availability is not a filesystem sandbox. The parent must supply a suitably isolated execution environment containing the actual change before commands with side effects run. Do not assume a worktree already exists or that it contains uncommitted changes. If isolation cannot be enforced, return a plan and limitation. Never infer safety from a command name or read-only access alone.
+Claude role files are generated in `.claude/agents/*.md`. Scout/reviewer allow only reading and local search. Documentation researcher also allows WebSearch/WebFetch when available and authorized; it has no shell/edit tools or mandatory MCP server. Do not transmit private project content in public searches. External access being unavailable leaves the relevant claims unverified. Codex read-only filesystem defaults do not enable network access; the parent supplies allowed research tools and network policy.
+
+Verifier also allows available shell tools under `permissionMode: default`; shell availability is not a filesystem sandbox. The parent must supply a suitably isolated execution environment containing the actual change before commands with side effects run. Do not assume a worktree already exists or that it contains uncommitted changes. If isolation cannot be enforced, return a plan and limitation. Never infer safety from a command name or read-only access alone.
 
 Do not let delegates edit overlapping product files or recursively launch more delegates. Results must separate evidence, hypotheses, recommended checks, and checks actually run. The primary agent reconciles contradictory results and owns acceptance.
 

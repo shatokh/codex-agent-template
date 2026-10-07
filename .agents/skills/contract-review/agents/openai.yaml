@@ -1,0 +1,6 @@
+interface:
+  display_name: "Contract Review"
+  short_description: "Assess interface changes and consumer compatibility"
+  default_prompt: "Use $contract-review to assess the consumer impact of this change."
+policy:
+  allow_implicit_invocation: true

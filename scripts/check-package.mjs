@@ -16,11 +16,15 @@ try {
   const info=JSON.parse(packed.stdout)[0], contents=info.files.map(x=>x.path);
   for(const name of ["bin/codex-agent-template.mjs","src/cli.mjs","src/roles.mjs","templates/roles/catalog.json","templates/roles/change-verifier.md","templates/base/docs/ai/delegation.md.tmpl","templates/base/.agents/skills/context-artifact-advisor/SKILL.md.tmpl","templates/skills/grill-me/SKILL.md","templates/skills/grill-me/agents/openai.yaml","templates/skills/repo-discovery/SKILL.md","templates/skills/bug-investigator/SKILL.md","templates/skills/verify-change/SKILL.md","schemas/config.schema.json"]) assert.ok(contents.includes(name),`Missing package file: ${name}`);
   assert.equal(contents.some(x=>/^(?:\.local|\.agents|test|docs|\.github)\//.test(x) || /\.(?:log|tmp|bak|tgz)$/.test(x)),false,"Unexpected local/test artifact in package");
+  for (const name of ["contract-review", "safe-refactor", "migration-planner", "docs-sync", "release-check"]) {
+    for (const file of ["SKILL.md", "agents/openai.yaml"]) assert.ok(contents.includes(`templates/skills/${name}/${file}`), `Missing specialized skill: ${name}/${file}`);
+  }
+  assert.ok(contents.includes("templates/roles/docs-researcher.md"));
   const unpack=path.join(temporary,"unpacked"),cwd=path.join(temporary,"unrelated"),target=path.join(temporary,"generated");
   await mkdir(unpack); await mkdir(cwd);
   await execute("tar",["-xzf",path.join(temporary,info.filename),"-C",unpack]);
   const cli=path.join(unpack,"package/bin/codex-agent-template.mjs");
-  await execute(process.execPath,[cli,"init-new","--target",target,"--agent","codex+claude","--workflow","spec-tdd","--skill","grill-me","--skill","bug-investigator","--role","repo-scout","--role","change-reviewer","--role","change-verifier","--context-advisor","--pack","privacy","--pack","compatibility","--pack","reliability","--pack","architecture","--apply"],{cwd});
+  await execute(process.execPath,[cli,"init-new","--target",target,"--agent","codex+claude","--workflow","spec-tdd","--skill","grill-me","--skill","bug-investigator",...["contract-review", "safe-refactor", "migration-planner", "docs-sync", "release-check"].flatMap(name=>["--skill",name]),"--role","repo-scout","--role","change-reviewer","--role","change-verifier","--role","docs-researcher","--context-advisor","--pack","privacy","--pack","compatibility","--pack","reliability","--pack","architecture","--apply"],{cwd});
   const result=await execute(process.execPath,[cli,"validate","--target",target,"--output=json"],{cwd});
   assert.equal(JSON.parse(result.stdout).valid,true);
   console.log(`Package validation passed: ${contents.length} files; extracted CLI generates and validates from another cwd.`);

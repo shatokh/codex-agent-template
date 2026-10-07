@@ -19,7 +19,7 @@ test("CLI list supports JSON output", async () => {
   assert.deepEqual(parsed.workflows, ["light", "task-first", "spec-tdd"]);
   assert.deepEqual(parsed.projectKinds, ["code", "docs", "game-design", "no-code"]);
   assert.deepEqual(parsed.packs, ["privacy", "external-services", "security", "test-harness", "docs", "compatibility", "reliability", "architecture"]);
-  assert.deepEqual(parsed.roles, ["repo-scout", "change-reviewer", "change-verifier"]);
+  assert.deepEqual(parsed.roles, ["repo-scout", "change-reviewer", "change-verifier", "docs-researcher"]);
 });
 
 test("CLI init-new dry-run supports JSON output", async () => {

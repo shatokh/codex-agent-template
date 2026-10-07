@@ -1,0 +1,6 @@
+interface:
+  display_name: "Safe Refactor"
+  short_description: "Restructure while checking observable behavior"
+  default_prompt: "Use $safe-refactor to make this structural change and verify its invariants."
+policy:
+  allow_implicit_invocation: true

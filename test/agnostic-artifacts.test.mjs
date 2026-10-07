@@ -13,6 +13,7 @@ import { parseGeneratedCodexRole, parseGeneratedClaudeRole, rolePaths } from "..
 const cli = path.resolve("bin/codex-agent-template.mjs");
 const selectedRoles = ["repo-scout", "change-reviewer", "change-verifier"];
 const selectedPacks = ["compatibility", "reliability", "architecture"];
+const specializedSkills = ["contract-review", "safe-refactor", "migration-planner", "docs-sync", "release-check"];
 async function fixture(t) {
   const root = await mkdtemp(path.join(os.tmpdir(), "cat-agnostic-"));
   t.after(async () => {
@@ -145,4 +146,90 @@ test("v0.2 schema-v1 configurations remain readable and upgrade only by reviewed
   assert.equal(JSON.parse(await readFile(configFile, "utf8")).version, "0.2.0");
   await updateExisting({target: root, roles: ["repo-scout"], apply: true, approval: "fixture", reviewedPlan: preview.plan});
   assert.deepEqual(JSON.parse(await readFile(configFile, "utf8")).roles, ["repo-scout"]);
+});
+
+test("specialized skills and researcher generate in each mode without adding unrelated workflows", async t => {
+  const root = await fixture(t);
+  for (const agent of ["codex", "claude", "codex+claude"]) {
+    const target = path.join(root, agent);
+    const result = await initNew({target, agent, projectKind: "no-code", skills: specializedSkills, roles: ["docs-researcher"], dryRun: false});
+    assert.deepEqual(result.skills, [...specializedSkills, "repo-discovery"]);
+    assert.deepEqual(result.roles, ["docs-researcher"]);
+    assert.deepEqual(result.packs, []);
+    const config = JSON.parse(await readFile(path.join(target, ".agent-template.json"), "utf8"));
+    assert.deepEqual(config.skills, result.skills);
+    for (const prefix of agent === "codex" ? [".agents"] : agent === "claude" ? [".claude"] : [".agents", ".claude"]) {
+      for (const name of specializedSkills) {
+        const source = await readFile(`templates/skills/${name}/SKILL.md`, "utf8");
+        assert.equal(await readFile(path.join(target, `${prefix}/skills/${name}/SKILL.md`), "utf8"), source);
+        if (prefix === ".agents") assert.equal(await readFile(path.join(target, `${prefix}/skills/${name}/agents/openai.yaml`), "utf8"), await readFile(`templates/skills/${name}/agents/openai.yaml`, "utf8"));
+      }
+    }
+    assert.equal((await validateGeneratedProject(target)).valid, true);
+    assert.equal((await updateExisting({target})).complete, true);
+  }
+});
+
+test("researcher has local evidence and web tools but no execution/edit permission", async t => {
+  const root = await fixture(t);
+  await initNew({target: root, agent: "codex+claude", roles: ["docs-researcher"], dryRun: false});
+  const native = parseGeneratedCodexRole(await readFile(path.join(root, ".codex/agents/docs-researcher.toml"), "utf8"));
+  assert.equal(native.sandbox_mode, "read-only");
+  assert.equal(native.model, undefined);
+  const filename = path.join(root, ".claude/agents/docs-researcher.md");
+  const source = await readFile(filename, "utf8");
+  const fields = parseGeneratedClaudeRole(source);
+  assert.deepEqual(fields.skills, ["repo-discovery"]);
+  assert.deepEqual(fields.tools, ["Read", "Grep", "Glob", "WebSearch", "WebFetch"]);
+  assert.equal(fields.permissionMode, "default");
+  await writeFile(filename, source.replace('["Read","Grep","Glob","WebSearch","WebFetch"]', '["Read","Grep","Glob","WebSearch","WebFetch","Bash"]'));
+  assert.ok((await validateGeneratedProject(root)).findings.some(x => x.code === "UNSAFE_ROLE_POLICY" && x.path === ".claude/agents/docs-researcher.md"));
+});
+
+test("reviewed expansion preserves existing selection and refuses to overwrite a custom specialized skill", async t => {
+  const root = await fixture(t);
+  await initNew({target: root, roles: ["change-reviewer"], skills: ["grill-me"], dryRun: false});
+  const oldRole = await readFile(path.join(root, ".codex/agents/change-reviewer.toml"), "utf8");
+  const options = {target: root, roles: ["change-reviewer", "docs-researcher"], skills: ["grill-me", "review-agent", ...specializedSkills]};
+  const preview = await updateExisting(options);
+  await assert.rejects(readFile(path.join(root, ".agents/skills/docs-sync/SKILL.md")), error => error.code === "ENOENT");
+  assert.deepEqual(preview.conflicts, []);
+  await updateExisting({...options, apply: true, approval: "approved fixture expansion", reviewedPlan: preview.plan});
+  assert.equal(await readFile(path.join(root, ".codex/agents/change-reviewer.toml"), "utf8"), oldRole);
+  assert.equal((await updateExisting({target: root})).complete, true);
+  const filename = path.join(root, ".agents/skills/docs-sync/SKILL.md");
+  const custom = (await readFile(filename, "utf8")) + "\nUser-owned documentation convention.\n";
+  await writeFile(filename, custom);
+  const conflict = await updateExisting({target: root});
+  assert.ok(conflict.conflicts.includes(".agents/skills/docs-sync/SKILL.md"));
+  await assert.rejects(updateExisting({target: root, apply: true, approval: "fixture", reviewedPlan: conflict.plan}), error => error.code === "CONFLICT");
+  assert.equal(await readFile(filename, "utf8"), custom);
+});
+
+test("CLI previews specialized selections without writing and carries them through reviewed apply", async t => {
+  const root = await fixture(t), target = path.join(root, "project"), planFile = path.join(root, "specialized.json");
+  const flags = [...specializedSkills.flatMap(name => ["--skill", name]), "--role", "docs-researcher"];
+  const preview = JSON.parse(execFileSync(process.execPath, [cli, "init-new", "--target", target, ...flags, "--output=json"], {encoding: "utf8", cwd: root}));
+  assert.equal(preview.dryRun, true);
+  assert.deepEqual(preview.skills, [...specializedSkills, "repo-discovery"]);
+  await assert.rejects(readFile(path.join(target, ".agent-template.json")), error => error.code === "ENOENT");
+  await initNew({target, dryRun: false});
+  execFileSync(process.execPath, [cli, "update-existing", "--target", target, ...flags, "--plan-file", planFile], {cwd: root});
+  const applied = JSON.parse(execFileSync(process.execPath, [cli, "update-existing", "--target", target, "--apply", "--approval", "fixture", "--plan-file", planFile, "--output=json"], {encoding: "utf8", cwd: root}));
+  assert.deepEqual(applied.skills, preview.skills);
+  assert.deepEqual(applied.roles, ["docs-researcher"]);
+  const onboard = JSON.parse(execFileSync(process.execPath, [cli, "onboard-existing", "--target", target, ...flags, "--check", "--output=json"], {encoding: "utf8", cwd: root}));
+  assert.equal(onboard.complete, true);
+});
+
+test("specialized evaluation scenarios preview baseline and instructions without model execution", () => {
+  const evaluator = path.resolve("scripts/eval-skills.mjs");
+  const scenarios = ["contract-unknown-consumers", "refactor-behavior-drift", "migration-lossy", "docs-unverified-command", "release-missing-evidence"];
+  for (const [index, name] of specializedSkills.entries()) {
+    const preview = JSON.parse(execFileSync(process.execPath, [evaluator, "--skill", name, "--scenario", scenarios[index]], {encoding: "utf8"}));
+    assert.equal(preview.dryRun, true);
+    assert.equal(preview.skill, name);
+    assert.deepEqual(preview.variants.map(x => x.name), ["baseline", name]);
+    assert.ok(preview.rubric.length > 0);
+  }
 });

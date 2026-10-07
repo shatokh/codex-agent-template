@@ -20,3 +20,5 @@ Keep selection opt-in, defaults compact, and existing update conflict/hash/journ
 ## Later work
 
 Five specialized skills, docs-researcher, presets, and optional record templates remain later-stage items from the proposal. Existing backlog boundaries for hooks, session capture, automatic merge, plugin packaging, other runtime adapters, and publication remain in force. No new runtime dependencies or model-backed service are introduced.
+
+Follow-up: the five specialized skills and docs-researcher were subsequently implemented in 0.4; [ADR 0004](0004-specialized-workflows.md) records that stage. Presets and optional record templates remain later options.

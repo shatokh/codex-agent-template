@@ -27,6 +27,7 @@ const requiredFiles = [
   "docs/evals/grill-me-forward-test.md",
   "docs/decisions/0002-approved-reliability-and-skills.md",
   "docs/decisions/0003-technology-agnostic-artifacts.md",
+  "docs/decisions/0004-specialized-workflows.md",
   "docs/ai/artifact-catalog.md",
   "src/discover-existing.mjs",
   "src/init-new.mjs",

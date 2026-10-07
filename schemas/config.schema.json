@@ -12,8 +12,8 @@
     "workflow": { "enum": ["light", "task-first", "spec-tdd"] },
     "projectKind": { "enum": ["code", "docs", "game-design", "no-code"] },
     "packs": { "type": "array", "uniqueItems": true, "items": { "enum": ["privacy", "external-services", "security", "test-harness", "docs", "compatibility", "reliability", "architecture"] } },
-    "skills": { "type": "array", "uniqueItems": true, "items": { "enum": ["grill-me", "clean-chat-handoff", "feature-planner", "review-agent", "repo-discovery", "bug-investigator", "verify-change"] } },
-    "roles": { "type": "array", "uniqueItems": true, "items": { "enum": ["repo-scout", "change-reviewer", "change-verifier"] }, "default": [] },
+    "skills": { "type": "array", "uniqueItems": true, "items": { "enum": ["grill-me", "clean-chat-handoff", "feature-planner", "review-agent", "repo-discovery", "bug-investigator", "verify-change", "contract-review", "safe-refactor", "migration-planner", "docs-sync", "release-check"] } },
+    "roles": { "type": "array", "uniqueItems": true, "items": { "enum": ["repo-scout", "change-reviewer", "change-verifier", "docs-researcher"] }, "default": [] },
     "contextAdvisor": { "type": "boolean" },
     "approvalPolicy": { "enum": ["conservative", "risk-based"] },
     "generatedAt": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }

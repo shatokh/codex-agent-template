@@ -1,0 +1,6 @@
+interface:
+  display_name: "Release Check"
+  short_description: "Assess release evidence, gaps, and recovery limits"
+  default_prompt: "Use $release-check to assess readiness of this release candidate."
+policy:
+  allow_implicit_invocation: true

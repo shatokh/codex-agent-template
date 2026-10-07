@@ -13,5 +13,10 @@
     "description": "Assess acceptance evidence and run only authorized checks that respect the supplied isolation and write boundaries.",
     "skills": ["verify-change"],
     "claudeTools": ["Read", "Grep", "Glob", "Bash", "PowerShell"]
+  },
+  "docs-researcher": {
+    "description": "Answer a delegated documentation question using primary sources matched to the project's versions, with citations and explicit uncertainty.",
+    "skills": ["repo-discovery"],
+    "claudeTools": ["Read", "Grep", "Glob", "WebSearch", "WebFetch"]
   }
 }

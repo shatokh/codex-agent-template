@@ -1,10 +1,19 @@
 # Active implementation plan
 
-Updated: 2026-10-07. Current version: 0.3.0.
+Updated: 2026-10-07. Current version: 0.4.0.
 
 The user approved all nine points of [the upgrade proposal](upgrade-proposal-2026-10-06.md), plus grill-me for consequential disputed decisions. [ADR 0002](../decisions/0002-approved-reliability-and-skills.md) records the new scope. The original bootstrap analysis is preserved in [the archive](archive/implementation-plan-2026-08-04.md).
 
 The user subsequently approved the first stage of [technology-agnostic artifacts](technology-agnostic-artifacts-proposal.md). [ADR 0003](../decisions/0003-technology-agnostic-artifacts.md) records its boundaries. See [the catalog](../ai/artifact-catalog.md) for selection and contracts.
+
+The user then requested commit/push and the next stage. [ADR 0004](../decisions/0004-specialized-workflows.md) records the specialized workflows and documentation researcher. Presets and optional document-record templates remain later-stage options.
+
+## Implemented specialized stage (0.4)
+
+1. Added contract-review, safe-refactor, migration-planner, docs-sync, and release-check with focused triggers, evidence-based outcomes, scope boundaries, and Codex UI metadata. All twelve skills are installed in this repository; generated projects still select them explicitly.
+2. Added docs-researcher with shared instructions and Codex/Claude wrappers. It uses repo-discovery to find local version/usage evidence, primary-source citations for research, and explicit access/version limitations. Claude allows local read/search plus WebSearch/WebFetch; Codex retains read-only filesystem defaults. Neither grants external access or editing/execution authority.
+3. Extended schema/CLI catalogs, package smoke, reviewed update/onboarding coverage, protected local artifacts, and unscored behavioral fixtures. Existing conflict protection, dependency resolution, and empty defaults are preserved.
+4. Bumped package/templates to 0.4.0 without a new schema version or runtime dependency. Recreate pending review plans against the current templates before apply.
 
 ## Implemented artifact stage (0.3)
 
@@ -14,7 +23,7 @@ The user subsequently approved the first stage of [technology-agnostic artifacts
 4. Integrated roles with optional schema-v1 metadata, CLI/list/onboarding, role/reference/policy diagnostics, saved plans, and existing conflict/hash/recovery protections. Default selection remains empty; deselected files remain available until separately removed/disabled.
 5. Added application/CLI/library/docs/no-code generation fixtures across all three modes, package smoke for roles, and additional behavioral scenarios selectable through eval --skill. Real model evals and native delegate execution are not claimed complete.
 
-Current checks: 66 tests, project validator, and extracted package smoke pass locally. Codex 0.160.1 discovered seven core skills without errors. Role native loading/effective policies and live Claude behavior remain unverified; see [verification evidence](../evals/technology-agnostic-artifacts.md). The five specialized skills, docs-researcher, optional record templates, and presets remain later-stage options.
+The 0.3 stage passed 66 tests and discovered seven core skills. Current 0.4 checks pass: 71 tests, project validator, extracted-package smoke (69 package files), independent TOML parsing of four roles, and native Codex 0.160.1 discovery of all twelve skills with zero errors. See [verification evidence](../evals/technology-agnostic-artifacts.md); native delegate loading/effective policies and live Claude behavior remain unverified.
 
 ## Objective
 

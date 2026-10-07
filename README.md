@@ -1,6 +1,6 @@
 # codex-agent-template
 
-Reviewable AI-agent bootstrap for Codex, Claude, and Codex+Claude. Version 0.3 adds technology-agnostic workflows, opt-in delegated roles, and conditional compatibility/reliability/architecture guidance to the guarded bootstrap/update CLI.
+Reviewable AI-agent bootstrap for Codex, Claude, and Codex+Claude. Version 0.4 adds contract review, safe refactoring, migration planning, documentation sync, release checks, and a documentation research role to the technology-agnostic catalog and guarded bootstrap/update CLI.
 
 Requires Node.js 22+ and no third-party runtime packages. Windows and Linux CI cover Node 24; a Linux job also covers Node 22. The package remains private.
 
@@ -52,8 +52,8 @@ Proposal/plan exports use exclusive creation, reject infrastructure paths, and d
 - Workflows: `light`, `task-first`, `spec-tdd`.
 - Project kinds: `code`, `docs`, `game-design`, `no-code` (`boardgame` remains a legacy alias).
 - Packs: `privacy`, `external-services`, `security`, `test-harness`, `docs`, `compatibility`, `reliability`, `architecture`; repeat `--pack`.
-- Starter skills: `grill-me`, `clean-chat-handoff`, `feature-planner`, `review-agent`, `repo-discovery`, `bug-investigator`, `verify-change`; repeat `--skill`.
-- Roles: `repo-scout`, `change-reviewer`, `change-verifier`; repeat `--role`. Required workflow skills are included automatically. `--agent` still selects the runtime.
+- Starter skills: `grill-me`, `clean-chat-handoff`, `feature-planner`, `review-agent`, `repo-discovery`, `bug-investigator`, `verify-change`, `contract-review`, `safe-refactor`, `migration-planner`, `docs-sync`, `release-check`; repeat `--skill`.
+- Roles: `repo-scout`, `change-reviewer`, `change-verifier`, `docs-researcher`; repeat `--role`. Required workflow skills are included automatically. `--agent` still selects the runtime.
 - `--context-advisor`: opt-in manual advisor; `--no-context-advisor` disables its generation in future plans.
 - `--approval-policy conservative|risk-based`: conservative is the default; both preserve already granted approval within its scope.
 
@@ -65,13 +65,16 @@ The versioned config format is documented in [config.schema.json](schemas/config
 
 ## Technology-agnostic workflows and roles
 
-The [artifact catalog](docs/ai/artifact-catalog.md) explains seven core skills, three roles, conditional packs, and their evidence/permission boundaries. No programming language, source layout, test framework, architecture style, or external service is mandatory. Default init generates no starter skills, roles, or packs.
+The [artifact catalog](docs/ai/artifact-catalog.md) explains twelve skills, four roles, conditional packs, and their evidence/permission boundaries. No programming language, source layout, test framework, architecture style, or external service is mandatory. Default init generates no starter skills, roles, or packs.
 
 ```sh
 node bin/codex-agent-template.mjs init-new --target .local/roles-example --agent codex+claude --role repo-scout --role change-reviewer --role change-verifier --skill bug-investigator --pack compatibility --pack reliability --pack architecture
+node bin/codex-agent-template.mjs init-new --target .local/maintenance-example --agent codex+claude --skill contract-review --skill safe-refactor --skill migration-planner --skill docs-sync --skill release-check --role docs-researcher
 ```
 
 Review preview and repeat with `--apply` to create. Codex roles use `.codex/agents/*.toml`; Claude uses `.claude/agents/*.md`. Both come from shared role bodies. Generation does not enable delegation automatically or change the parent model/permissions. Verifier returns a plan when safe execution is unavailable. Generated `docs/ai/delegation.md` explains runtime-specific limits.
+
+`docs-researcher` uses local evidence plus authorized primary-source research matched to the project's versions. It has no execution/edit mandate or mandatory external provider; unavailable access is an evidence gap. `release-check` assesses a concrete candidate; publication needs authorization for that action and target, while existing authorization remains valid within its scope.
 
 Selected arrays replace the previous selection; omitted update settings are preserved. Deselected artifacts remain on disk, and native runtimes may still discover them. Deselecting a role does not revoke it: disable/remove retained files only through separate review. Existing user-edited role files become update conflicts.
 
@@ -105,6 +108,7 @@ node scripts/eval-skills.mjs --skill bug-investigator --scenario bug-unreproduce
 - [Approved upgrade proposal](docs/plans/upgrade-proposal-2026-10-06.md)
 - [Scope decision 0002](docs/decisions/0002-approved-reliability-and-skills.md)
 - [Artifact scope decision 0003](docs/decisions/0003-technology-agnostic-artifacts.md)
+- [Specialized workflow decision 0004](docs/decisions/0004-specialized-workflows.md)
 - [Technology-agnostic artifact catalog](docs/ai/artifact-catalog.md)
 - [Portable cookbook](docs/cookbooks/manual-run-cookbook.md)
 - [Research](docs/research/internet-best-practices.md)
